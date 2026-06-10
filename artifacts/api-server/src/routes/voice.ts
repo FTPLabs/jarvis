@@ -23,7 +23,7 @@ const learningData = {
   conversationCount: 0,
   learnedFacts: {} as Record<string, string>,
   commandFrequency: {} as Record<string, number>,
-  userName: "Хозяин",
+  userName: "ХОЗЯЙН",
   topApps: [] as string[],
   screenLog: [] as Array<{ ts: string; event: string; data: string }>,
 };
@@ -42,10 +42,10 @@ async function checkOllama(): Promise<boolean> {
 
 async function askOllama(userText: string, context: string): Promise<string | null> {
   try {
-    const systemPrompt = `Ты JARVIS — персональный ИИ-ассистент на русском языке, как в фильме Железный человек.
+    const systemPrompt = `Ты JARVIS — персональный голосовой ассистент на русском языке, как в фильме Железный человек.
 Отвечай ТОЛЬКО по-русски. Кратко и чётко — максимум 2 предложения.
-Обращайся к пользователю как "${learningData.userName}".
-Ты умный, быстрый и всегда полезный.
+Обращайся к пользователю "ХОЗЯЙН" — именно так, всегда.
+Ты умный, быстрый, всегда чёткий и полезный. Никогда не говори, что ты робот или программа.
 ${context ? `\nКонтекст о пользователе:\n${context}` : ""}`;
 
     const res = await fetch("http://127.0.0.1:11434/api/generate", {
@@ -81,7 +81,7 @@ async function logActivity(type: string, message: string, detail?: string) {
 // ─── Auto-learning helpers ───────────────────────────────────────────────────
 function buildContext(): string {
   const lines: string[] = [];
-  if (learningData.userName !== "Хозяин") lines.push(`Имя: ${learningData.userName}`);
+  if (learningData.userName !== "ХОЗЯЙН") lines.push(`Имя: ${learningData.userName}`);
   const facts = Object.entries(learningData.learnedFacts).slice(0, 8);
   if (facts.length) {
     lines.push("Известные факты:");
