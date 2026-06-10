@@ -71,8 +71,13 @@ function startPythonCore(): void {
       }
     }
   });
-  // Сброс счётчика рестартов при успешном запуске
-  pythonRestartCount = 0;
+  // Сброс счётчика только если процесс прожил > 5 секунд (реальный старт)
+  const startPid = pythonProcess.pid;
+  setTimeout(() => {
+    if (pythonProcess && pythonProcess.pid === startPid) {
+      pythonRestartCount = 0;
+    }
+  }, 5000);
   console.log(`JARVIS ядро запущено (PID: ${pythonProcess.pid})`);
 }
 
