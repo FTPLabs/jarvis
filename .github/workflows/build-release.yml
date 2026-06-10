@@ -38,7 +38,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Patch pnpm-workspace.yaml for CI (keep catalog, remove platform overrides)
+      - name: Patch pnpm-workspace.yaml for CI
         shell: bash
         run: |
           cat > pnpm-workspace.yaml << 'WSEOF'
@@ -82,13 +82,12 @@ jobs:
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
 
-      - name: Install Python deps
-        run: pip install -r desktop/requirements.txt pyinstaller
+      - name: Install Python + setuptools
+        run: pip install setuptools wheel pyinstaller
         continue-on-error: true
 
-      - name: Build Python core .exe
-        working-directory: desktop
-        run: python build_windows.py
+      - name: Install Python app deps
+        run: pip install -r desktop/requirements.txt
         continue-on-error: true
 
       - name: Install Electron deps
@@ -107,7 +106,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-Windows
-          path: electron/dist-app/*.exe
+          path: |
+            electron/dist-app/*.exe
+            electron/dist-app/*.msi
           if-no-files-found: warn
           retention-days: 30
 
@@ -171,15 +172,6 @@ jobs:
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
 
-      - name: Install Python deps
-        run: pip3 install -r desktop/requirements.txt pyinstaller
-        continue-on-error: true
-
-      - name: Build Python core (macOS)
-        working-directory: desktop
-        run: python3 build_windows.py
-        continue-on-error: true
-
       - name: Install Electron deps
         working-directory: electron
         run: npm install
@@ -194,7 +186,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-macOS
-          path: electron/dist-app/*.dmg
+          path: |
+            electron/dist-app/*.dmg
+            electron/dist-app/*.zip
           if-no-files-found: warn
           retention-days: 30
 
@@ -214,9 +208,6 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
-
-      - name: Install system deps
-        run: sudo apt-get install -y python3-pip python3-dev portaudio19-dev
 
       - name: Patch pnpm-workspace.yaml for CI
         run: |
@@ -261,15 +252,6 @@ jobs:
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
 
-      - name: Install Python deps
-        run: pip3 install -r desktop/requirements.txt pyinstaller
-        continue-on-error: true
-
-      - name: Build Python core (Linux)
-        working-directory: desktop
-        run: python3 build_windows.py
-        continue-on-error: true
-
       - name: Install Electron deps
         working-directory: electron
         run: npm install
@@ -284,16 +266,19 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-Linux
-          path: electron/dist-app/*.AppImage
+          path: |
+            electron/dist-app/*.AppImage
+            electron/dist-app/*.deb
           if-no-files-found: warn
           retention-days: 30
 
-  # ─── Create GitHub Release ───────────────────────────────────────────────
+  # ─── Create GitHub Release (runs even if some builds failed) ─────────────
   release:
     name: Create GitHub Release
     needs: [build-windows, build-mac, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    # Run if tag push, regardless of individual build results
+    if: always() && startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
 
@@ -301,13 +286,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
+        continue-on-error: true
 
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: List release assets
-        run: find release-assets -type f 2>/dev/null || echo "No assets found"
+      - name: List available release assets
+        run: find release-assets -type f 2>/dev/null || echo "No assets downloaded"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -316,29 +302,45 @@ jobs:
           body: |
             ## JARVIS AI Ассистент v${{ steps.get_version.outputs.VERSION }}
 
-            ### Установка
+            ### Скачать установщик
 
-            | Платформа | Файл |
-            |-----------|------|
-            | Windows 10/11 | JARVIS-Setup-*.exe |
-            | macOS 12+ | JARVIS-*.dmg |
-            | Linux | JARVIS-*.AppImage |
+            | Платформа | Скачать |
+            |-----------|---------|
+            | 🪟 Windows 10/11 | `JARVIS-Setup-*.exe` |
+            | 🍎 macOS 12+ | `JARVIS-*.dmg` |
+            | 🐧 Linux | `JARVIS-*.AppImage` |
 
-            ### Первый запуск
-            1. Скачайте установщик для своей платформы
-            2. Запустите установщик (Windows: нажмите "Всё равно запустить" в SmartScreen)
-            3. JARVIS появится в системном трее
+            ### Установка (Windows)
+            1. Скачайте `JARVIS-Setup-*.exe`
+            2. Нажмите "Всё равно запустить" в SmartScreen
+            3. JARVIS установится и запустится в системном трее
             4. Установите Ollama: https://ollama.ai → `ollama pull llama3:8b`
-            5. Скажите **«Джарвис»** для активации или нажмите **Ctrl+Shift+J**
+            5. Скажите **«Джарвис»** или нажмите **Ctrl+Shift+J**
 
-            ### Лицензия
-            - Демо-ключ: `JARVIS-DEMO-TEST-2024`
-            - Пробная (30 дней): `JARVIS-XXXX-XXXX-XXXX`
-            - Постоянная: `JARVIS-PERM-XXXX-XXXX`
+            ### Возможности
+            - 🎙️ Всегда активен — не нужно нажимать кнопки
+            - 🧠 Самообучение — запоминает ваше имя, предпочтения, факты
+            - 🤖 Локальный AI (Ollama + llama3:8b) — без интернета
+            - 💻 Запуск приложений голосом или текстом
+            - 📊 Аналитика YouTube/TikTok
+            - 🔒 Все данные хранятся локально (~/.jarvis/)
+
+            ### Лицензионные ключи
+            - **Демо:** `JARVIS-DEMO-TEST-2024`
+            - **Пробная (30 дней):** `JARVIS-XXXX-XXXX-XXXX`
+            - **Постоянная:** `JARVIS-PERM-XXXX-XXXX`
+
+            ### Системные требования
+            - ОЗУ: 8 ГБ+ (16 ГБ рекомендуется)
+            - Диск: 10 ГБ (для AI моделей)
+            - ОС: Windows 10/11, macOS 12+, Ubuntu 20.04+
           files: |
             release-assets/**/*.exe
+            release-assets/**/*.msi
             release-assets/**/*.dmg
+            release-assets/**/*.zip
             release-assets/**/*.AppImage
+            release-assets/**/*.deb
           draft: false
           prerelease: false
           fail_on_unmatched_files: false
