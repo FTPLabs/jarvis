@@ -21,6 +21,7 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let pythonProcess: ChildProcess | null = null;
 let forceQuit = false;
+let pythonRestartCount = 0;
 
 // ─── Единственный экземпляр ───────────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock();
@@ -65,8 +66,8 @@ function startPythonCore(): void {
   });
 
   // Сброс счётчика рестартов при успешном запуске
-    pythonRestartCount = 0;
-    console.log(`JARVIS ядро запущено (PID: ${pythonProcess.pid})`);
+  pythonRestartCount = 0;
+  console.log(`JARVIS ядро запущено (PID: ${pythonProcess.pid})`);
 }
 
 // ─── Main Window ──────────────────────────────────────────────────────────
