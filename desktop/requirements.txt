@@ -1,32 +1,32 @@
 # JARVIS Core Requirements
-fastapi==0.115.0
-uvicorn==0.30.6
-pydantic==2.9.2
+  fastapi==0.115.0
+  uvicorn==0.30.6
+  pydantic==2.9.2
 
-# System monitoring
-psutil==6.0.0
+  # System monitoring
+  psutil==6.0.0
 
-# Voice — STT
-openai-whisper==20231117
+  # Voice — STT (Whisper, offline, Russian)
+  openai-whisper==20231117
 
-# Voice — TTS (Piper is a binary, installed separately)
-# Download from: https://github.com/rhasspy/piper/releases
-pyttsx3==2.90  # fallback TTS for Windows
+  # Voice — TTS (Microsoft Neural TTS — human-like Russian male voice, no API key needed)
+  edge-tts==6.1.9
 
-# Voice — TTS (Chatterbox — voice cloning)
-# pip install chatterbox-tts  # optional, requires PyTorch
+  # Voice — Wake word (Porcupine)
+  pvporcupine==3.0.1
 
-# Voice — Wake word (Porcupine)
-pvporcupine==3.0.1  # free tier available at picovoice.ai
+  # Audio
+  pyaudio==0.2.14
+  numpy==1.26.4
 
-# Audio
-pyaudio==0.2.14
-numpy==1.26.4
+  # HTTP
+  httpx==0.27.2
+  aiofiles==23.2.1
 
-# HTTP
-httpx==0.27.2
-aiofiles==23.2.1
+  # Utilities
+  python-dotenv==1.0.1
+  cryptography==43.0.1
 
-# Utilities
-python-dotenv==1.0.1
-cryptography==43.0.1
+  # Icon generation (CI build step)
+  pillow==10.4.0
+  
