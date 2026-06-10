@@ -18,18 +18,20 @@ router.get("/system", async (req, res) => {
     const ramPercent = (usedMem / totalMem) * 100;
     const uptime = os.uptime();
 
-    const activityRows = await db.select().from(activityLogTable).orderBy(desc(activityLogTable.timestamp)).limit(1000);
-    sessionCommands = activityRows.length;
+    const sessionStart = new Date(jarvisStartTime);
+    const activityRows = await db.select().from(activityLogTable)
+      .orderBy(desc(activityLogTable.timestamp)).limit(1000);
+    sessionCommands = activityRows.filter(r => r.timestamp >= sessionStart).length;
 
     return res.json({
-      cpuPercent: Math.round(Math.random() * 20 + 5), // Simulated; real value needs native module
+      cpuPercent: null, // Требует нативного модуля (node-os-utils); не симулируем
       ramPercent: Math.round(ramPercent * 10) / 10,
       ramUsedGb: Math.round((usedMem / 1024 / 1024 / 1024) * 100) / 100,
       ramTotalGb: Math.round((totalMem / 1024 / 1024 / 1024) * 100) / 100,
       uptimeHours: Math.round((uptime / 3600) * 10) / 10,
       sessionCommands,
       jarvisUptime: Math.round(((Date.now() - jarvisStartTime) / 3600000) * 100) / 100,
-      diskPercent: Math.round(Math.random() * 30 + 40),
+      diskPercent: null, // Требует нативного модуля; не симулируем
     });
   } catch (err) {
     req.log.error(err);
