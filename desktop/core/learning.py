@@ -22,7 +22,7 @@ LEARN_FILE = JARVIS_DIR / "learning.json"
 ACTIVITY_FILE = JARVIS_DIR / "activity.json"
 
 DEFAULT_MEMORY: dict[str, Any] = {
-    "user_name": "Хозяин",
+    "user_name": "ХОЗЯЙН",
     "facts": {},
     "preferences": {},
     "goals": [],
@@ -118,13 +118,13 @@ class LearningEngine:
             self._dirty = True
 
     def get_user_name(self) -> str:
-        return self.memory.get("user_name", "Хозяин")
+        return self.memory.get("user_name", "ХОЗЯЙН")
 
     def get_context_for_ai(self) -> str:
         """Build rich context string for injecting into AI prompts."""
         lines: list[str] = []
-        name = self.memory.get("user_name", "Хозяин")
-        if name != "Хозяин":
+        name = self.memory.get("user_name", "ХОЗЯЙН")
+        if name != "ХОЗЯЙН":
             lines.append(f"Имя пользователя: {name}")
 
         facts = self.memory.get("facts", {})
@@ -172,7 +172,7 @@ class LearningEngine:
                 self.activity.get("focused_apps", {}).items(),
                 key=lambda x: x[1], reverse=True
             )[:5],
-            "user_name": self.memory.get("user_name", "Хозяин"),
+            "user_name": self.memory.get("user_name", "ХОЗЯЙН"),
             "peak_hour": self._peak_hour(),
         }
 
