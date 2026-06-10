@@ -27,8 +27,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: electron/package-lock.json
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -41,7 +39,7 @@ jobs:
           version: 9
 
       - name: Install pnpm deps
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install Python deps
         run: pip install -r desktop/requirements.txt pyinstaller
@@ -90,10 +88,14 @@ jobs:
           version: 9
 
       - name: Install pnpm deps
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install Python deps
-        run: pip3 install -r desktop/requirements.txt
+        run: pip3 install -r desktop/requirements.txt pyinstaller
+
+      - name: Build Python core .exe (macOS)
+        working-directory: desktop
+        run: python3 build_windows.py
 
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
@@ -136,10 +138,14 @@ jobs:
         run: sudo apt-get install -y python3-pip python3-dev portaudio19-dev
 
       - name: Install pnpm deps
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install Python deps
-        run: pip3 install -r desktop/requirements.txt
+        run: pip3 install -r desktop/requirements.txt pyinstaller
+
+      - name: Build Python core (Linux)
+        working-directory: desktop
+        run: python3 build_windows.py
 
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
@@ -186,30 +192,30 @@ jobs:
           body: |
             ## JARVIS AI Assistant v${{ steps.get_version.outputs.VERSION }}
 
-            ### Installation
+            ### Установка
 
-            | Platform | File | Size |
-            |----------|------|------|
+            | Платформа | Файл | Размер |
+            |-----------|------|--------|
             | Windows 10/11 | JARVIS-Setup-*.exe | ~150MB |
             | macOS 12+ | JARVIS-*.dmg | ~200MB |
             | Linux (AppImage) | JARVIS-*.AppImage | ~180MB |
 
-            ### First Run
-            1. Download the installer for your platform
-            2. Run the installer (Windows may require admin rights)
-            3. Launch JARVIS and activate with your license key
-            4. Install Ollama: https://ollama.ai and run `ollama pull llama3:8b`
-            5. Say "Jarvis" to activate, or press Ctrl+Shift+J
+            ### Первый запуск
+            1. Скачайте установщик для своей платформы
+            2. Запустите установщик (Windows может потребовать права администратора)
+            3. Запустите JARVIS и активируйте лицензионным ключом
+            4. Установите Ollama: https://ollama.ai и выполните `ollama pull llama3:8b`
+            5. Скажите «Джарвис» для активации или нажмите Ctrl+Shift+J
 
-            ### License Keys
-            - **Trial (30 days):** Start with `JARVIS-XXXX-XXXX-XXXX`
-            - **Permanent:** Keys start with `JARVIS-PERM-XXXX-XXXX`
-            - Demo key for testing: `JARVIS-DEMO-TEST-2024`
+            ### Лицензионные ключи
+            - **Пробная (30 дней):** начинается с `JARVIS-XXXX-XXXX-XXXX`
+            - **Постоянная:** начинается с `JARVIS-PERM-XXXX-XXXX`
+            - Демо-ключ для теста: `JARVIS-DEMO-TEST-2024`
 
-            ### Requirements
-            - 8GB RAM minimum (16GB recommended for AI models)
-            - 10GB disk space for AI models
-            - Ollama installed with llama3:8b model
+            ### Требования
+            - 8 ГБ ОЗУ минимум (16 ГБ рекомендуется для AI моделей)
+            - 10 ГБ дисковое пространство для AI моделей
+            - Ollama с моделью llama3:8b
           files: |
             release-assets/JARVIS-Windows/*.exe
             release-assets/JARVIS-macOS/*.dmg
