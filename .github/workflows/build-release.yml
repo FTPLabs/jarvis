@@ -1,21 +1,21 @@
 name: Build JARVIS Release
 
-on:
-  push:
-    tags:
-      - "v*"
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to build (e.g. 1.0.2)"
-        required: true
-        default: "1.0.0"
+  on:
+    push:
+      tags:
+        - "v*"
+    workflow_dispatch:
+      inputs:
+        version:
+          description: "Version to build (e.g. 1.0.2)"
+          required: true
+          default: "1.0.0"
 
-permissions:
-  contents: write
+  permissions:
+    contents: write
 
-jobs:
-  # ─── Build Windows .exe ──────────────────────────────────────────
+  jobs:
+    # ─── Build Windows .exe ──────────────────────────────────────────
     build-windows:
       name: Build Windows Installer
       runs-on: windows-latest
@@ -119,11 +119,15 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: npm run build:win
 
-        - name: Upload Windows artifacts
+        - name: Upload Windows installer
           uses: actions/upload-artifact@v4
           with:
             name: JARVIS-Windows
-            path: electron/dist-app/
+            path: |
+              electron/dist-app/*.exe
+              electron/dist-app/*.blockmap
+              electron/dist-app/latest.yml
+
     # ─── Build macOS .dmg ────────────────────────────────────────────────
     build-macos:
       name: Build macOS DMG
@@ -206,11 +210,15 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: npm run build:mac
 
-        - name: Upload macOS artifacts
+        - name: Upload macOS installer
           uses: actions/upload-artifact@v4
           with:
             name: JARVIS-macOS
-            path: electron/dist-app/
+            path: |
+              electron/dist-app/*.dmg
+              electron/dist-app/*.blockmap
+              electron/dist-app/latest-mac.yml
+
     # ─── Build Linux .AppImage ───────────────────────────────────────────
     build-linux:
       name: Build Linux AppImage
@@ -293,11 +301,14 @@ jobs:
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           run: npm run build:linux
 
-        - name: Upload Linux artifacts
+        - name: Upload Linux installer
           uses: actions/upload-artifact@v4
           with:
             name: JARVIS-Linux
-            path: electron/dist-app/
+            path: |
+              electron/dist-app/*.AppImage
+              electron/dist-app/latest-linux.yml
+
     # ─── Create GitHub Release ───────────────────────────────────────────
     create-release:
       name: Create GitHub Release
@@ -309,11 +320,20 @@ jobs:
           uses: actions/download-artifact@v4
           with:
             path: release-artifacts
+            merge-multiple: true
+
+        - name: List release files
+          run: find release-artifacts -type f | sort
 
         - name: Create Release
           uses: softprops/action-gh-release@v2
           with:
-            files: release-artifacts/**/*
+            files: |
+              release-artifacts/*.exe
+              release-artifacts/*.dmg
+              release-artifacts/*.AppImage
+              release-artifacts/*.blockmap
+              release-artifacts/*.yml
             generate_release_notes: true
             draft: false
             prerelease: false
