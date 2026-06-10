@@ -64,7 +64,9 @@ function startPythonCore(): void {
     }
   });
 
-  console.log(`JARVIS ядро запущено (PID: ${pythonProcess.pid})`);
+  // Сброс счётчика рестартов при успешном запуске
+    pythonRestartCount = 0;
+    console.log(`JARVIS ядро запущено (PID: ${pythonProcess.pid})`);
 }
 
 // ─── Main Window ──────────────────────────────────────────────────────────
