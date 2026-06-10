@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { memoryEntriesTable, tasksTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, SQL } from "drizzle-orm";
 
 const router = Router();
 
@@ -9,14 +9,16 @@ const router = Router();
 router.get("/entries", async (req, res) => {
   try {
     const { category, limit } = req.query;
-    let rows = await db.select().from(memoryEntriesTable).orderBy(desc(memoryEntriesTable.createdAt));
-
-    if (category && typeof category === "string") {
-      rows = rows.filter((r) => r.category === category);
-    }
-
     const lim = Math.min(Number(limit) || 20, 100);
-    const result = rows.slice(0, lim).map((r) => ({
+    const conditions: SQL[] = [];
+    if (category && typeof category === "string") {
+      conditions.push(eq(memoryEntriesTable.category, category));
+    }
+    const query = db.select().from(memoryEntriesTable).orderBy(desc(memoryEntriesTable.createdAt)).limit(lim);
+    const rows = conditions.length > 0
+      ? await db.select().from(memoryEntriesTable).where(conditions[0]).orderBy(desc(memoryEntriesTable.createdAt)).limit(lim)
+      : await query;
+    const result = rows.map((r) => ({
       ...r,
       tags: JSON.parse(r.tags || "[]"),
       createdAt: r.createdAt.toISOString(),
