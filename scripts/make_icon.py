@@ -7,13 +7,18 @@ import os
 import struct
 import zlib
 from pathlib import Path
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 
 def create_jarvis_ico(output_dir: str = "electron/assets"):
     try:
         from PIL import Image, ImageDraw, ImageFont
     except ImportError:
-        print("Установите pillow: pip install pillow")
+        print("Install pillow: pip install pillow")
         raise
 
     os.makedirs(output_dir, exist_ok=True)
@@ -78,27 +83,27 @@ def create_jarvis_ico(output_dir: str = "electron/assets"):
     ico_path = Path(output_dir) / "jarvis.ico"
     images[0].save(str(ico_path), format="ICO",
                    sizes=[(s, s) for s in sizes])
-    print(f"  Создан: {ico_path}")
+    print(f"  Created: {ico_path}")
 
     # Сохраняем PNG для трея (32x32)
     tray_path = Path(output_dir) / "tray-icon.png"
     make_frame(32).save(str(tray_path), format="PNG")
-    print(f"  Создан: {tray_path}")
+    print(f"  Created: {tray_path}")
 
     # Большой PNG (256) для Linux
     png_path = Path(output_dir) / "jarvis.png"
     images[0].save(str(png_path), format="PNG")
-    print(f"  Создан: {png_path}")
+    print(f"  Created: {png_path}")
 
     # macOS ICNS (простой способ через PIL если поддерживается)
     try:
         icns_path = Path(output_dir) / "jarvis.icns"
         images[0].save(str(icns_path), format="ICNS")
-        print(f"  Создан: {icns_path}")
+        print(f"  Created: {icns_path}")
     except Exception:
-        print("  ICNS: пропущен (только macOS)")
+        print("  ICNS: skipped (macOS only)")
 
-    print(f"\nИконки JARVIS сгенерированы в {output_dir}/")
+    print(f"\nJARVIS icons generated in {output_dir}/")
 
 
 if __name__ == "__main__":
