@@ -21,9 +21,10 @@ log = logging.getLogger("jarvis.voice")
 
 JARVIS_DIR = Path.home() / ".jarvis"
 
-# Голос для синтеза речи — человекоподобный русский мужской голос
+# edge-tts (ru-RU-DmitryNeural) требует интернет; при отсутствии — fallback на pyttsx3 (офлайн)
 TTS_VOICE = "ru-RU-DmitryNeural"
 TTS_RATE = "+5%"   # чуть быстрее стандартного — звучит увереннее
+TTS_OFFLINE_FALLBACK = True  # автоматический fallback на pyttsx3 при ошибке сети
 
 
 class VoiceEngine:
