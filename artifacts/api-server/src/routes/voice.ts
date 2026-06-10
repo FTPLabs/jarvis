@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { logger } from "../lib/logger";
 import { db } from "@workspace/db";
 import { activityLogTable, memoryEntriesTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
@@ -23,7 +24,7 @@ const learningData = {
   conversationCount: 0,
   learnedFacts: {} as Record<string, string>,
   commandFrequency: {} as Record<string, number>,
-  userName: "ХОЗЯЙН",
+  userName: "ХОЗЯИН",
   topApps: [] as string[],
   screenLog: [] as Array<{ ts: string; event: string; data: string }>,
 };
@@ -44,7 +45,7 @@ async function askOllama(userText: string, context: string): Promise<string | nu
   try {
     const systemPrompt = `Ты JARVIS — персональный голосовой ассистент на русском языке, как в фильме Железный человек.
 Отвечай ТОЛЬКО по-русски. Кратко и чётко — максимум 2 предложения.
-Обращайся к пользователю "ХОЗЯЙН" — именно так, всегда.
+Обращайся к пользователю "ХОЗЯИН" — именно так, всегда.
 Ты умный, быстрый, всегда чёткий и полезный. Никогда не говори, что ты робот или программа.
 ${context ? `\nКонтекст о пользователе:\n${context}` : ""}`;
 
@@ -76,14 +77,14 @@ async function logActivity(type: string, message: string, detail?: string) {
       detail: detail?.slice(0, 500) ?? null,
     });
   } catch (err) {
-    console.error("[logActivity] DB error:", err);
+    logger.error({ err }, "[logActivity] DB error");
   }
 }
 
 // ─── Auto-learning helpers ───────────────────────────────────────────────────
 function buildContext(): string {
   const lines: string[] = [];
-  if (learningData.userName !== "ХОЗЯЙН") lines.push(`Имя: ${learningData.userName}`);
+  if (learningData.userName !== "ХОЗЯИН") lines.push(`Имя: ${learningData.userName}`);
   const facts = Object.entries(learningData.learnedFacts).slice(0, 8);
   if (facts.length) {
     lines.push("Известные факты:");
@@ -108,6 +109,8 @@ function learnFromText(text: string) {
   if (nameMatch) {
     learningData.userName = nameMatch[1];
     learningData.learnedFacts["имя"] = nameMatch[1];
+    // Persist to DB
+    db.insert(memoryEntriesTable).values({ content: nameMatch[1], category: "name", importance: 5 }).catch(() => {});
   }
 
   // Learn preferences
