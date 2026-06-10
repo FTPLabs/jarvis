@@ -1,81 +1,81 @@
 {
-  "name": "jarvis-desktop",
-  "version": "1.0.0",
-  "description": "JARVIS AI Voice Assistant",
-  "main": "dist/main.js",
-  "author": "JARVIS Team",
-  "license": "UNLICENSED",
-  "private": true,
-  "scripts": {
-    "dev": "electron .",
-    "build": "tsc -p tsconfig.json && electron-builder",
-    "build:win": "tsc -p tsconfig.json && electron-builder --win",
-    "build:mac": "tsc -p tsconfig.json && electron-builder --mac",
-    "build:linux": "tsc -p tsconfig.json && electron-builder --linux"
-  },
-  "dependencies": {
-    "electron-updater": "^6.3.9"
-  },
-  "devDependencies": {
-    "electron": "^31.3.1",
-    "electron-builder": "^24.13.3",
-    "typescript": "^5.5.0",
-    "@types/node": "^20.0.0"
-  },
-  "build": {
-    "appId": "com.jarvis.assistant",
-    "productName": "JARVIS",
-    "copyright": "Copyright © 2024 JARVIS Team",
-    "directories": {
-      "output": "dist-app"
+    "name": "jarvis-desktop",
+    "version": "1.0.0",
+    "description": "JARVIS AI Voice Assistant",
+    "main": "dist/main.js",
+    "author": "JARVIS Team",
+    "license": "UNLICENSED",
+    "private": true,
+    "scripts": {
+      "dev": "electron .",
+      "build": "tsc -p tsconfig.json && electron-builder",
+      "build:win": "tsc -p tsconfig.json && electron-builder --win",
+      "build:mac": "tsc -p tsconfig.json && electron-builder --mac",
+      "build:linux": "tsc -p tsconfig.json && electron-builder --linux"
     },
-    "files": [
-      "dist/**/*",
-      "assets/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "../desktop/core",
-        "to": "core"
+    "dependencies": {
+      "electron-updater": "^6.3.9"
+    },
+    "devDependencies": {
+      "electron": "^31.3.1",
+      "electron-builder": "^24.13.3",
+      "typescript": "^5.5.0",
+      "@types/node": "^20.0.0"
+    },
+    "build": {
+      "appId": "com.jarvis.assistant",
+      "productName": "JARVIS",
+      "copyright": "Copyright © 2024 JARVIS Team",
+      "directories": {
+        "output": "dist-app"
       },
-      {
-        "from": "../desktop/config",
-        "to": "config"
-      }
-    ],
-    "win": {
-      "target": [
-        { "target": "nsis", "arch": ["x64"] }
+      "files": [
+        "dist/**/*",
+        "assets/**/*",
+        "renderer/**/*"
       ],
-      "icon": "assets/jarvis.ico",
-      "publisherName": "JARVIS Team",
-      "requestedExecutionLevel": "requireAdministrator"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "JARVIS",
-      "installerIcon": "assets/jarvis.ico",
-      "installerHeader": "assets/installer-header.bmp",
-      "installerSidebar": "assets/installer-sidebar.bmp",
-      "license": "../LICENSE.txt"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "assets/jarvis.icns",
-      "category": "public.app-category.productivity"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "assets/jarvis.png",
-      "category": "Office"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "FTPLabs",
-      "repo": "jarvis"
+      "extraResources": [
+        {
+          "from": "../desktop/core",
+          "to": "core"
+        },
+        {
+          "from": "../desktop/config",
+          "to": "config"
+        }
+      ],
+      "win": {
+        "target": [
+          { "target": "nsis", "arch": ["x64"] }
+        ],
+        "icon": "assets/jarvis.ico",
+        "publisherName": "JARVIS Team",
+        "requestedExecutionLevel": "requireAdministrator"
+      },
+      "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "shortcutName": "JARVIS",
+        "installerIcon": "assets/jarvis.ico",
+        "license": "../LICENSE.txt"
+      },
+      "mac": {
+        "target": "dmg",
+        "icon": "assets/jarvis.icns",
+        "category": "public.app-category.productivity"
+      },
+      "linux": {
+        "target": "AppImage",
+        "icon": "assets/jarvis.png",
+        "category": "Office"
+      },
+      "publish": {
+        "provider": "github",
+        "owner": "FTPLabs",
+        "repo": "jarvis"
+      }
     }
   }
-}
+  
