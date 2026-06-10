@@ -1,21 +1,21 @@
 name: Build JARVIS Release
 
-  on:
-    push:
-      tags:
-        - "v*"
-    workflow_dispatch:
-      inputs:
-        version:
-          description: "Version to build (e.g. 1.0.2)"
-          required: true
-          default: "1.0.0"
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g. 1.0.2)"
+        required: true
+        default: "1.0.0"
 
-  permissions:
-    contents: write
+permissions:
+  contents: write
 
-  jobs:
-    # ─── Build Windows .exe ──────────────────────────────────────────────────
+jobs:
+  # ─── Build Windows .exe ──────────────────────────────────────────
     build-windows:
       name: Build Windows Installer
       runs-on: windows-latest
@@ -28,10 +28,8 @@ name: Build JARVIS Release
           with:
             node-version: "20"
 
-        - name: Setup pnpm
-          uses: pnpm/action-setup@v4
-          with:
-            version: 9
+        - name: Install pnpm
+          run: npm install -g pnpm@9
 
         - name: Setup Python
           uses: actions/setup-python@v5
@@ -97,13 +95,13 @@ name: Build JARVIS Release
         - name: Verify icons exist
           shell: bash
           run: |
-            echo "--- Иконки ---"
-            ls -la electron/assets/
-            test -f electron/assets/jarvis.ico || (echo "ОШИБКА: jarvis.ico не найден" && exit 1)
-            test -f electron/assets/tray-icon.png || (echo "ОШИБКА: tray-icon.png не найден" && exit 1)
-            echo "Все иконки на месте ✅"
+            echo "Icons check:"
+            ls -la electron/assets/ || true
+            test -f electron/assets/jarvis.ico || (echo "ERROR: jarvis.ico not found" && exit 1)
+            test -f electron/assets/tray-icon.png || (echo "ERROR: tray-icon.png not found" && exit 1)
+            echo "All icons OK"
 
-        - name: Install Python + setuptools
+        - name: Install PyInstaller
           run: pip install setuptools wheel pyinstaller
           continue-on-error: true
 
@@ -128,8 +126,7 @@ name: Build JARVIS Release
           with:
             name: JARVIS-Windows
             path: electron/dist-app/
-
-    # ─── Build macOS .dmg ────────────────────────────────────────────────────
+    # ─── Build macOS .dmg ────────────────────────────────────────────────
     build-macos:
       name: Build macOS DMG
       runs-on: macos-latest
@@ -142,10 +139,8 @@ name: Build JARVIS Release
           with:
             node-version: "20"
 
-        - name: Setup pnpm
-          uses: pnpm/action-setup@v4
-          with:
-            version: 9
+        - name: Install pnpm
+          run: npm install -g pnpm@9
 
         - name: Setup Python
           uses: actions/setup-python@v5
@@ -218,8 +213,7 @@ name: Build JARVIS Release
           with:
             name: JARVIS-macOS
             path: electron/dist-app/
-
-    # ─── Build Linux .AppImage ───────────────────────────────────────────────
+    # ─── Build Linux .AppImage ───────────────────────────────────────────
     build-linux:
       name: Build Linux AppImage
       runs-on: ubuntu-latest
@@ -232,10 +226,8 @@ name: Build JARVIS Release
           with:
             node-version: "20"
 
-        - name: Setup pnpm
-          uses: pnpm/action-setup@v4
-          with:
-            version: 9
+        - name: Install pnpm
+          run: npm install -g pnpm@9
 
         - name: Setup Python
           uses: actions/setup-python@v5
@@ -308,8 +300,7 @@ name: Build JARVIS Release
           with:
             name: JARVIS-Linux
             path: electron/dist-app/
-
-    # ─── Create GitHub Release ───────────────────────────────────────────────
+    # ─── Create GitHub Release ───────────────────────────────────────────
     create-release:
       name: Create GitHub Release
       needs: [build-windows, build-macos, build-linux]
