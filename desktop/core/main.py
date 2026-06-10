@@ -41,7 +41,7 @@ LICENSE_PATH = JARVIS_DIR / "license.json"
 app = FastAPI(title="JARVIS Core", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8080", "http://localhost:5173", "http://localhost:8081", "http://127.0.0.1:8080", "http://127.0.0.1:8765"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -191,7 +191,7 @@ async def process_command(req: CommandRequest):
         context = learning.build_context()
 
     # System prompt in Russian
-    system_prompt = f"""Ты JARVIS — персональный ИИ-ассистент на русском языке, как в фильме Железный человек.
+    system_prompt = f"""Ты JARVIS — персональный голосовой ассистент на русском языке, как в фильме Железный человек.
 Отвечай ТОЛЬКО по-русски. Кратко и чётко — максимум 2 предложения.
 Обращайся к пользователю уважительно. Ты умный, быстрый и всегда полезный.
 
@@ -290,7 +290,7 @@ def _route_command(text: str) -> str:
     if any(w in t for w in ["привет", "здравствуй", "добрый"]):
         hour = datetime.now().hour
         greeting = "Доброе утро" if 5 <= hour < 12 else "Добрый день" if 12 <= hour < 17 else "Добрый вечер"
-        name = learning.get_preference("name", "Хозяин") if learning else "Хозяин"
+        name = learning.get_preference("name", "ХОЗЯЙН") if learning else "ХОЗЯЙН"
         return f"{greeting}, {name}! Готов к работе."
 
     # Learning: remember name
