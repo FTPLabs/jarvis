@@ -38,7 +38,7 @@ export default function Settings() {
   }, [settings]);
 
   const handleChange = (key: string, value: any) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+    setFormData((prev: Record<string, unknown>) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = () => {
