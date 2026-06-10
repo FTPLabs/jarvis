@@ -1,35 +1,35 @@
 name: Dev Build Check
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+  on:
+    push:
+      branches: [main, develop]
+    pull_request:
+      branches: [main]
 
-jobs:
-  typecheck:
-    name: TypeScript Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-      - run: pnpm install --no-frozen-lockfile
-      - run: pnpm run typecheck
+  jobs:
+    typecheck:
+      name: TypeScript Check
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: pnpm/action-setup@v4
+          with:
+            version: 9
+        - uses: actions/setup-node@v4
+          with:
+            node-version: "20"
+        - run: pnpm install --no-frozen-lockfile
+        - run: pnpm run typecheck
 
-  python-check:
-    name: Python Syntax Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install fastapi uvicorn pydantic psutil
-      - run: python -m py_compile desktop/core/main.py
-      - run: python -m py_compile desktop/core/voice_engine.py
+    python-check:
+      name: Python Syntax Check
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
+        - run: pip install fastapi uvicorn pydantic psutil
+        - run: python -m py_compile desktop/core/main.py
+        - run: python -m py_compile desktop/core/voice_engine.py
+  
