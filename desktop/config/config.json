@@ -1,0 +1,96 @@
+{
+  "_comment": "JARVIS Configuration File — Edit to customize your setup",
+  "version": "1.0.0",
+
+  "ai": {
+    "ollamaUrl": "http://127.0.0.1:11434",
+    "ollamaModel": "llama3:8b",
+    "ollamaFallbackModel": "gpt-oss:20b",
+    "systemPrompt": "You are JARVIS, an AI assistant like in Iron Man. Be concise, precise, and professional. Answer in 1-3 sentences unless asked for more detail.",
+    "contextWindowSize": 4096,
+    "temperature": 0.7
+  },
+
+  "voice": {
+    "sttEngine": "whisper",
+    "whisperModel": "base",
+    "ttsEngine": "piper",
+    "piperPath": "piper",
+    "piperModel": "~/.jarvis/voices/en_US-libritts-high.onnx",
+    "wakeWord": "Jarvis",
+    "wakeWordEnabled": true,
+    "porcupineKey": "",
+    "language": "en",
+    "emotionIntensity": 0.7,
+    "voiceCloneEnabled": false,
+    "voiceSamplePath": ""
+  },
+
+  "reminders": {
+    "waterReminderEnabled": true,
+    "waterIntervalMinutes": 60,
+    "breakReminderEnabled": true,
+    "breakIntervalMinutes": 90,
+    "sleepReminderEnabled": true,
+    "sleepTime": "23:00",
+    "wakeTime": "07:00"
+  },
+
+  "analytics": {
+    "youtubeApiKey": "",
+    "youtubeChannelId": "",
+    "tiktokUsername": "",
+    "refreshIntervalMinutes": 30
+  },
+
+  "mcpIntegrations": {
+    "_comment": "Set 'enabled: true' and fill credentials to activate",
+    "googleWorkspace": {
+      "enabled": false,
+      "clientId": "",
+      "clientSecret": ""
+    },
+    "notion": {
+      "enabled": false,
+      "integrationToken": ""
+    },
+    "github": {
+      "enabled": false,
+      "personalAccessToken": "",
+      "defaultRepo": ""
+    },
+    "discord": {
+      "enabled": false,
+      "botToken": "",
+      "defaultChannelId": ""
+    },
+    "slack": {
+      "enabled": false,
+      "botToken": "",
+      "defaultChannel": "#general"
+    },
+    "homeAssistant": {
+      "enabled": false,
+      "url": "http://homeassistant.local:8123",
+      "longLivedToken": ""
+    }
+  },
+
+  "ui": {
+    "alwaysOnTop": true,
+    "opacity": 0.95,
+    "theme": "jarvis-dark",
+    "startMinimized": false,
+    "showInTaskbar": true,
+    "hotkey": "Ctrl+Shift+J"
+  },
+
+  "system": {
+    "nativeApiPort": 8765,
+    "webUiPort": 5173,
+    "autoLaunch": false,
+    "checkForUpdates": true,
+    "updateChannel": "stable",
+    "logLevel": "info"
+  }
+}

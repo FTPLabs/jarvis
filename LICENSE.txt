@@ -1,0 +1,40 @@
+JARVIS AI ASSISTANT — END USER LICENSE AGREEMENT (EULA)
+
+Copyright (c) 2024 JARVIS Team. All rights reserved.
+
+IMPORTANT: READ THIS AGREEMENT CAREFULLY BEFORE USING THIS SOFTWARE.
+
+1. LICENSE GRANT
+   Subject to the terms of this Agreement and payment of applicable fees,
+   you are granted a non-exclusive, non-transferable license to install and
+   use JARVIS on machines identified by the Hardware ID (HWID) registered
+   at time of activation.
+
+2. LICENSE TYPES
+   a) TRIAL LICENSE: Valid for 30 days from activation date on one machine.
+   b) PERMANENT LICENSE: Perpetual use on one machine (identified by HWID).
+
+3. RESTRICTIONS
+   You may NOT:
+   - Share, redistribute, or resell your license key
+   - Attempt to bypass or circumvent the HWID binding system
+   - Reverse engineer, decompile, or disassemble the software
+   - Use the software on more machines than your license permits
+
+4. HWID BINDING
+   This software uses Hardware ID (HWID) technology to bind licenses to
+   specific machines. License transfers to new hardware require contacting
+   support with proof of purchase.
+
+5. DISCLAIMER OF WARRANTIES
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+6. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY INDIRECT, INCIDENTAL,
+   SPECIAL, OR CONSEQUENTIAL DAMAGES.
+
+7. THIRD-PARTY COMPONENTS
+   This software includes open-source components under their respective
+   licenses: Ollama (MIT), Whisper (MIT), Piper TTS (MIT).
+
+By installing or using JARVIS, you agree to be bound by this Agreement.

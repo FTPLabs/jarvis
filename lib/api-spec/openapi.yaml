@@ -1,0 +1,804 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: JARVIS AI Assistant API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: license
+    description: License and activation operations
+  - name: voice
+    description: Voice command and STT/TTS operations
+  - name: memory
+    description: Long-term memory and task operations
+  - name: apps
+    description: Application control operations
+  - name: stats
+    description: System and analytics statistics
+  - name: settings
+    description: Configuration and settings
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /license/status:
+    get:
+      operationId: getLicenseStatus
+      tags: [license]
+      summary: Get current license status and HWID
+      responses:
+        "200":
+          description: License status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseStatus"
+
+  /license/activate:
+    post:
+      operationId: activateLicense
+      tags: [license]
+      summary: Activate a license key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LicenseActivationInput"
+      responses:
+        "200":
+          description: Activation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicenseStatus"
+        "400":
+          description: Invalid key or HWID mismatch
+
+  /voice/command:
+    post:
+      operationId: processVoiceCommand
+      tags: [voice]
+      summary: Process a voice/text command
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandInput"
+      responses:
+        "200":
+          description: Command response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResponse"
+
+  /voice/status:
+    get:
+      operationId: getVoiceStatus
+      tags: [voice]
+      summary: Get voice engine status (STT, TTS, wake word)
+      responses:
+        "200":
+          description: Voice status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceStatus"
+
+  /voice/listen:
+    post:
+      operationId: toggleListening
+      tags: [voice]
+      summary: Toggle voice listening on/off
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ListenToggleInput"
+      responses:
+        "200":
+          description: Updated voice status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceStatus"
+
+  /memory/entries:
+    get:
+      operationId: listMemoryEntries
+      tags: [memory]
+      summary: List memory entries
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Memory entries list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MemoryEntry"
+    post:
+      operationId: createMemoryEntry
+      tags: [memory]
+      summary: Store a new memory entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryEntryInput"
+      responses:
+        "201":
+          description: Created memory entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryEntry"
+
+  /memory/entries/{id}:
+    delete:
+      operationId: deleteMemoryEntry
+      tags: [memory]
+      summary: Delete a memory entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /memory/tasks:
+    get:
+      operationId: listTasks
+      tags: [memory]
+      summary: List tasks and goals
+      responses:
+        "200":
+          description: Tasks list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [memory]
+      summary: Create a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /memory/tasks/{id}:
+    patch:
+      operationId: updateTask
+      tags: [memory]
+      summary: Update task status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [memory]
+      summary: Delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /apps/list:
+    get:
+      operationId: listInstalledApps
+      tags: [apps]
+      summary: List installed/known applications
+      responses:
+        "200":
+          description: Apps list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppEntry"
+
+  /apps/launch:
+    post:
+      operationId: launchApp
+      tags: [apps]
+      summary: Launch an application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppLaunchInput"
+      responses:
+        "200":
+          description: Launch result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppActionResult"
+
+  /apps/running:
+    get:
+      operationId: listRunningApps
+      tags: [apps]
+      summary: List currently running applications
+      responses:
+        "200":
+          description: Running apps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RunningApp"
+
+  /stats/system:
+    get:
+      operationId: getSystemStats
+      tags: [stats]
+      summary: Get system stats (CPU, RAM, uptime, session)
+      responses:
+        "200":
+          description: System statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStats"
+
+  /stats/activity:
+    get:
+      operationId: getActivityLog
+      tags: [stats]
+      summary: Get recent JARVIS activity log
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Activity log
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEntry"
+
+  /stats/youtube:
+    get:
+      operationId: getYoutubeStats
+      tags: [stats]
+      summary: Get YouTube channel statistics
+      responses:
+        "200":
+          description: YouTube stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YoutubeStats"
+
+  /stats/tiktok:
+    get:
+      operationId: getTiktokStats
+      tags: [stats]
+      summary: Get TikTok account statistics
+      responses:
+        "200":
+          description: TikTok stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TiktokStats"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get current configuration
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+
+  /settings/skills:
+    get:
+      operationId: listSkills
+      tags: [settings]
+      summary: List installed skills/plugins
+      responses:
+        "200":
+          description: Skills list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Skill"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    LicenseStatus:
+      type: object
+      properties:
+        hwid:
+          type: string
+        activated:
+          type: boolean
+        licenseType:
+          type: ["string", "null"]
+          enum: [trial, permanent, null]
+        expiresAt:
+          type: ["string", "null"]
+        daysRemaining:
+          type: ["integer", "null"]
+        email:
+          type: ["string", "null"]
+      required: [hwid, activated, licenseType, expiresAt, daysRemaining, email]
+
+    LicenseActivationInput:
+      type: object
+      properties:
+        licenseKey:
+          type: string
+        email:
+          type: string
+      required: [licenseKey]
+
+    CommandInput:
+      type: object
+      properties:
+        text:
+          type: string
+        source:
+          type: string
+          enum: [voice, text]
+          default: text
+      required: [text]
+
+    CommandResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        action:
+          type: ["string", "null"]
+        actionResult:
+          type: ["string", "null"]
+        ttsUrl:
+          type: ["string", "null"]
+        timestamp:
+          type: string
+      required: [id, text, action, actionResult, ttsUrl, timestamp]
+
+    VoiceStatus:
+      type: object
+      properties:
+        listening:
+          type: boolean
+        sttEngine:
+          type: string
+        ttsEngine:
+          type: string
+        wakeWordEnabled:
+          type: boolean
+        wakeWord:
+          type: string
+        ollamaConnected:
+          type: boolean
+        ollamaModel:
+          type: string
+      required: [listening, sttEngine, ttsEngine, wakeWordEnabled, wakeWord, ollamaConnected, ollamaModel]
+
+    ListenToggleInput:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+      required: [enabled]
+
+    MemoryEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+        importance:
+          type: integer
+      required: [id, content, category, tags, createdAt, importance]
+
+    MemoryEntryInput:
+      type: object
+      properties:
+        content:
+          type: string
+        category:
+          type: string
+          enum: [task, goal, preference, fact, event, note]
+        tags:
+          type: array
+          items:
+            type: string
+        importance:
+          type: integer
+          minimum: 1
+          maximum: 5
+      required: [content, category]
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, in_progress, done, cancelled]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        dueDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+      required: [id, title, description, status, priority, dueDate, createdAt, completedAt]
+
+    TaskInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          default: medium
+        dueDate:
+          type: string
+      required: [title]
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, done, cancelled]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        description:
+          type: string
+
+    AppEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        icon:
+          type: ["string", "null"]
+        category:
+          type: string
+        voiceAliases:
+          type: array
+          items:
+            type: string
+      required: [id, name, path, icon, category, voiceAliases]
+
+    AppLaunchInput:
+      type: object
+      properties:
+        appId:
+          type: string
+        name:
+          type: string
+      required: []
+
+    AppActionResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        appName:
+          type: ["string", "null"]
+      required: [success, message, appName]
+
+    RunningApp:
+      type: object
+      properties:
+        pid:
+          type: integer
+        name:
+          type: string
+        cpu:
+          type: number
+        memory:
+          type: number
+      required: [pid, name, cpu, memory]
+
+    SystemStats:
+      type: object
+      properties:
+        cpuPercent:
+          type: number
+        ramPercent:
+          type: number
+        ramUsedGb:
+          type: number
+        ramTotalGb:
+          type: number
+        uptimeHours:
+          type: number
+        sessionCommands:
+          type: integer
+        jarvisUptime:
+          type: number
+        diskPercent:
+          type: number
+      required: [cpuPercent, ramPercent, ramUsedGb, ramTotalGb, uptimeHours, sessionCommands, jarvisUptime, diskPercent]
+
+    ActivityEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [command, system, app, reminder, error]
+        message:
+          type: string
+        detail:
+          type: ["string", "null"]
+        timestamp:
+          type: string
+      required: [id, type, message, detail, timestamp]
+
+    YoutubeStats:
+      type: object
+      properties:
+        channelName:
+          type: ["string", "null"]
+        subscribers:
+          type: ["integer", "null"]
+        totalViews:
+          type: ["integer", "null"]
+        videoCount:
+          type: ["integer", "null"]
+        lastVideoTitle:
+          type: ["string", "null"]
+        lastVideoViews:
+          type: ["integer", "null"]
+        estimatedMonthlyRevenue:
+          type: ["number", "null"]
+        trend:
+          type: string
+          enum: [up, down, stable]
+        configured:
+          type: boolean
+      required: [channelName, subscribers, totalViews, videoCount, lastVideoTitle, lastVideoViews, estimatedMonthlyRevenue, trend, configured]
+
+    TiktokStats:
+      type: object
+      properties:
+        username:
+          type: ["string", "null"]
+        followers:
+          type: ["integer", "null"]
+        totalLikes:
+          type: ["integer", "null"]
+        videoCount:
+          type: ["integer", "null"]
+        trend:
+          type: string
+          enum: [up, down, stable]
+        configured:
+          type: boolean
+      required: [username, followers, totalLikes, videoCount, trend, configured]
+
+    Settings:
+      type: object
+      properties:
+        ollamaUrl:
+          type: string
+        ollamaModel:
+          type: string
+        sttEngine:
+          type: string
+          enum: [whisper, browser]
+        ttsEngine:
+          type: string
+          enum: [piper, chatterbox, system]
+        wakeWord:
+          type: string
+        wakeWordEnabled:
+          type: boolean
+        language:
+          type: string
+        youtubeChannelId:
+          type: ["string", "null"]
+        youtubeApiKey:
+          type: ["string", "null"]
+        tiktokUsername:
+          type: ["string", "null"]
+        reminderInterval:
+          type: integer
+        waterReminderEnabled:
+          type: boolean
+        breakReminderEnabled:
+          type: boolean
+        sleepReminderEnabled:
+          type: boolean
+        sleepTime:
+          type: string
+        voiceCloneEnabled:
+          type: boolean
+        emotionIntensity:
+          type: number
+      required: [ollamaUrl, ollamaModel, sttEngine, ttsEngine, wakeWord, wakeWordEnabled, language, youtubeChannelId, youtubeApiKey, tiktokUsername, reminderInterval, waterReminderEnabled, breakReminderEnabled, sleepReminderEnabled, sleepTime, voiceCloneEnabled, emotionIntensity]
+
+    SettingsUpdate:
+      type: object
+      properties:
+        ollamaUrl:
+          type: string
+        ollamaModel:
+          type: string
+        sttEngine:
+          type: string
+        ttsEngine:
+          type: string
+        wakeWord:
+          type: string
+        wakeWordEnabled:
+          type: boolean
+        language:
+          type: string
+        youtubeChannelId:
+          type: string
+        youtubeApiKey:
+          type: string
+        tiktokUsername:
+          type: string
+        waterReminderEnabled:
+          type: boolean
+        breakReminderEnabled:
+          type: boolean
+        sleepReminderEnabled:
+          type: boolean
+        sleepTime:
+          type: string
+        emotionIntensity:
+          type: number
+
+    Skill:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        version:
+          type: string
+        author:
+          type: string
+      required: [id, name, description, enabled, version, author]
