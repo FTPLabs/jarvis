@@ -7,8 +7,8 @@ const router = Router();
 const DEFAULT_APPS = [
   { id: "chrome", name: "Google Chrome", path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", icon: null, category: "browser", voiceAliases: ["chrome", "browser", "google"] },
   { id: "firefox", name: "Firefox", path: "C:\\Program Files\\Mozilla Firefox\\firefox.exe", icon: null, category: "browser", voiceAliases: ["firefox", "mozilla"] },
-  { id: "spotify", name: "Spotify", path: "C:\\Users\\AppData\\Roaming\\Spotify\\Spotify.exe", icon: null, category: "media", voiceAliases: ["spotify", "music"] },
-  { id: "discord", name: "Discord", path: "C:\\Users\\AppData\\Local\\Discord\\app.exe", icon: null, category: "communication", voiceAliases: ["discord", "chat"] },
+  { id: "spotify", name: "Spotify", path: process.env["APPDATA"] ? `${process.env["APPDATA"]}\\Spotify\\Spotify.exe` : "C:\\Users\\%USERNAME%\\AppData\\Roaming\\Spotify\\Spotify.exe", icon: null, category: "media", voiceAliases: ["spotify", "music"] },
+  { id: "discord", name: "Discord", path: process.env["LOCALAPPDATA"] ? `${process.env["LOCALAPPDATA"]}\\Discord\\app.exe` : "C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\app.exe", icon: null, category: "communication", voiceAliases: ["discord", "chat"] },
   { id: "steam", name: "Steam", path: "C:\\Program Files (x86)\\Steam\\steam.exe", icon: null, category: "gaming", voiceAliases: ["steam", "games", "gaming"] },
   { id: "vscode", name: "VS Code", path: "C:\\Program Files\\Microsoft VS Code\\Code.exe", icon: null, category: "development", voiceAliases: ["vscode", "code", "editor"] },
   { id: "notepad", name: "Notepad", path: "C:\\Windows\\notepad.exe", icon: null, category: "utility", voiceAliases: ["notepad", "text editor"] },
