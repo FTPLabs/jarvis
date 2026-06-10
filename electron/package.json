@@ -1,80 +1,84 @@
 {
-    "name": "jarvis-desktop",
-    "version": "1.0.0",
-    "description": "JARVIS AI Voice Assistant",
-    "main": "dist/main.js",
-    "author": "JARVIS Team",
-    "license": "UNLICENSED",
-    "private": true,
-    "scripts": {
-      "dev": "electron .",
-      "build": "tsc -p tsconfig.json && electron-builder",
-      "build:win": "tsc -p tsconfig.json && electron-builder --win",
-      "build:mac": "tsc -p tsconfig.json && electron-builder --mac",
-      "build:linux": "tsc -p tsconfig.json && electron-builder --linux"
+  "name": "jarvis-desktop",
+  "version": "1.0.12",
+  "description": "JARVIS AI Voice Assistant — FTPDev",
+  "main": "dist/main.js",
+  "author": "FTPDev <contact@ftpdev.ru>",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron .",
+    "build": "tsc -p tsconfig.json && electron-builder",
+    "build:win": "tsc -p tsconfig.json && electron-builder --win",
+    "build:mac": "tsc -p tsconfig.json && electron-builder --mac",
+    "build:linux": "tsc -p tsconfig.json && electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.5.0",
+    "@types/node": "^20.0.0"
+  },
+  "build": {
+    "appId": "ru.ftpdev.jarvis",
+    "productName": "JARVIS",
+    "copyright": "Copyright © 2026 FTPDev. Все права защищены.",
+    "directories": {
+      "output": "dist-app"
     },
-    "dependencies": {
-      "electron-updater": "^6.3.9"
-    },
-    "devDependencies": {
-      "electron": "^31.3.1",
-      "electron-builder": "^24.13.3",
-      "typescript": "^5.5.0",
-      "@types/node": "^20.0.0"
-    },
-    "build": {
-      "appId": "com.jarvis.assistant",
-      "productName": "JARVIS",
-      "copyright": "Copyright © 2024 JARVIS Team",
-      "directories": {
-        "output": "dist-app"
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "renderer/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../desktop/core",
+        "to": "core"
       },
-      "files": [
-        "dist/**/*",
-        "assets/**/*",
-        "renderer/**/*"
-      ],
-      "extraResources": [
+      {
+        "from": "../desktop/config",
+        "to": "config"
+      }
+    ],
+    "win": {
+      "target": [
         {
-          "from": "../desktop/core",
-          "to": "core"
-        },
-        {
-          "from": "../desktop/config",
-          "to": "config"
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
         }
       ],
-      "win": {
-        "target": [
-          { "target": "nsis", "arch": ["x64"] }
-        ],
-        "icon": "assets/jarvis.ico",
-        "publisherName": "JARVIS Team",
-        "requestedExecutionLevel": "requireAdministrator"
-      },
-      "nsis": {
-        "oneClick": false,
-        "allowToChangeInstallationDirectory": true,
-        "createDesktopShortcut": true,
-        "createStartMenuShortcut": true,
-        "shortcutName": "JARVIS",
-        "installerIcon": "assets/jarvis.ico",
-      },
-      "mac": {
-        "target": "dmg",
-        "icon": "assets/jarvis.icns",
-        "category": "public.app-category.productivity"
-      },
-      "linux": {
-        "target": "AppImage",
-        "icon": "assets/jarvis.png",
-        "category": "Office"
-      },
-      "publish": {
-        "provider": "github",
-        "owner": "FTPLabs",
-        "repo": "jarvis"
-      }
+      "icon": "assets/jarvis.ico",
+      "publisherName": "FTPDev",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "JARVIS",
+      "installerIcon": "assets/jarvis.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/jarvis.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/jarvis.png",
+      "category": "Office"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "FTPLabs",
+      "repo": "jarvis"
     }
   }
-  
+}
