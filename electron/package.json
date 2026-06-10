@@ -59,7 +59,6 @@
         "createStartMenuShortcut": true,
         "shortcutName": "JARVIS",
         "installerIcon": "assets/jarvis.ico",
-        "license": "../LICENSE.txt"
       },
       "mac": {
         "target": "dmg",
