@@ -75,7 +75,9 @@ async function logActivity(type: string, message: string, detail?: string) {
       message: message.slice(0, 500),
       detail: detail?.slice(0, 500) ?? null,
     });
-  } catch {}
+  } catch (err) {
+    console.error("[logActivity] DB error:", err);
+  }
 }
 
 // ─── Auto-learning helpers ───────────────────────────────────────────────────

@@ -60,7 +60,7 @@ export type AppEntry = typeof appsTable.$inferSelect;
 
 export const licenseTable = pgTable("license", {
   id: serial("id").primaryKey(),
-  hwid: text("hwid").notNull(),
+  hwid: text("hwid").notNull().unique(),
   licenseKey: text("license_key"),
   licenseType: text("license_type"),
   email: text("email"),

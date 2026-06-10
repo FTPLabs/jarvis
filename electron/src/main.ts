@@ -59,11 +59,16 @@ function startPythonCore(): void {
   pythonProcess.on("exit", (code) => {
     console.log(`Python Core завершён (код: ${code})`);
     pythonProcess = null;
-    // Auto-restart if not intentional quit
+    // Auto-restart if not intentional quit (max 5 попыток с backoff)
     if (!forceQuit && code !== 0) {
-      setTimeout(startPythonCore, 3000);
-    }
-  });
+      pythonRestartCount++;
+      if (pythonRestartCount <= 5) {
+        const delay = Math.min(3000 * pythonRestartCount, 15000);
+          console.log(`Python Core: рестарт ${pythonRestartCount}/5 через ${delay}ms...`);
+          setTimeout(startPythonCore, delay);
+        } else {
+          console.error("Python Core: превышен лимит перезапусков (5). Проверьте зависимости.");
+        }
 
   // Сброс счётчика рестартов при успешном запуске
   pythonRestartCount = 0;

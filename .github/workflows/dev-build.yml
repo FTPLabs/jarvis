@@ -67,3 +67,4 @@ jobs:
       - run: pip install fastapi uvicorn pydantic psutil
       - run: python -m py_compile desktop/core/main.py
       - run: python -m py_compile desktop/core/voice_engine.py
+      - run: python -m py_compile desktop/core/learning.py
