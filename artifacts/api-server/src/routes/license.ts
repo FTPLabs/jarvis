@@ -53,7 +53,9 @@ import { Router } from "express";
     } catch (err) { req.log.error(err); return res.status(500).json({ error: "Internal server error" }); }
   });
 
-  router.post("/activate", async (req, res) => {
+  // ПРЕДУПРЕЖДЕНИЕ: Проверка лицензии только по формату строки (regex).
+    // Для продакшна нужен криптографически подписанный ключ или серверная верификация.
+    router.post("/activate", async (req, res) => {
     try {
       const { licenseKey, email } = req.body;
       const hwid = getHWID();
