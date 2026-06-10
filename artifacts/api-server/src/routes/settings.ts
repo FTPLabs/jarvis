@@ -10,9 +10,9 @@ const DEFAULT_SETTINGS = {
   ollamaModel: "llama3:8b",
   sttEngine: "whisper",
   ttsEngine: "piper",
-  wakeWord: "Jarvis",
+  wakeWord: "Джарвис",
   wakeWordEnabled: "true",
-  language: "en",
+  language: "ru",
   youtubeChannelId: "",
   youtubeApiKey: "",
   tiktokUsername: "",
@@ -70,14 +70,12 @@ router.patch("/", async (req, res) => {
   try {
     const updates = req.body as Record<string, unknown>;
 
+    const now = new Date();
     for (const [key, rawValue] of Object.entries(updates)) {
       const value = String(rawValue);
-      const existing = await db.select().from(settingsTable).where(eq(settingsTable.key, key)).limit(1);
-      if (existing.length > 0) {
-        await db.update(settingsTable).set({ value, updatedAt: new Date() }).where(eq(settingsTable.key, key));
-      } else {
-        await db.insert(settingsTable).values({ key, value });
-      }
+      await db.insert(settingsTable)
+        .values({ key, value, updatedAt: now })
+        .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: now } });
     }
 
     const map = await getAllSettings();
