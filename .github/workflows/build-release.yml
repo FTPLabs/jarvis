@@ -42,7 +42,15 @@ jobs:
       - name: Install pnpm deps
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build React UI
+      - name: Build API Server
+          run: pnpm --filter @workspace/api-server run build
+
+        - name: Copy API Server to Electron resources
+          run: |
+            mkdir -p electron/api-server
+            cp artifacts/api-server/dist/index.js electron/api-server/
+
+        - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
         env:
           BASE_PATH: "./"
@@ -51,7 +59,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p electron/renderer
-          cp -r artifacts/jarvis-ui/dist/. electron/renderer/
+          cp -r artifacts/jarvis-ui/dist/public/. electron/renderer/
 
       - name: Install Pillow for icon generation
         run: pip install pillow
@@ -121,7 +129,15 @@ jobs:
       - name: Install pnpm deps
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build React UI
+      - name: Build API Server
+          run: pnpm --filter @workspace/api-server run build
+
+        - name: Copy API Server to Electron resources
+          run: |
+            mkdir -p electron/api-server
+            cp artifacts/api-server/dist/index.js electron/api-server/
+
+        - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
         env:
           BASE_PATH: "./"
@@ -129,7 +145,7 @@ jobs:
       - name: Copy React UI to Electron renderer
         run: |
           mkdir -p electron/renderer
-          cp -r artifacts/jarvis-ui/dist/. electron/renderer/
+          cp -r artifacts/jarvis-ui/dist/public/. electron/renderer/
 
       - name: Install Pillow and generate icons
         run: pip install pillow && python scripts/make_icon.py electron/assets
@@ -179,7 +195,15 @@ jobs:
       - name: Install pnpm deps
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build React UI
+      - name: Build API Server
+          run: pnpm --filter @workspace/api-server run build
+
+        - name: Copy API Server to Electron resources
+          run: |
+            mkdir -p electron/api-server
+            cp artifacts/api-server/dist/index.js electron/api-server/
+
+        - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
         env:
           BASE_PATH: "./"
@@ -187,7 +211,7 @@ jobs:
       - name: Copy React UI to Electron renderer
         run: |
           mkdir -p electron/renderer
-          cp -r artifacts/jarvis-ui/dist/. electron/renderer/
+          cp -r artifacts/jarvis-ui/dist/public/. electron/renderer/
 
       - name: Install Pillow and generate icons
         run: pip install pillow && python scripts/make_icon.py electron/assets
