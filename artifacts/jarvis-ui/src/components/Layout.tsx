@@ -5,6 +5,12 @@ import { Link, useLocation } from "wouter";
     Settings, KeyRound, ChevronRight
   } from "lucide-react";
 
+  declare module "react" {
+    interface CSSProperties {
+      WebkitAppRegion?: "drag" | "no-drag" | "none";
+    }
+  }
+
   declare global {
     interface Window {
       jarvisAPI?: {
