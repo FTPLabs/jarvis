@@ -8,10 +8,11 @@
   "private": true,
   "scripts": {
     "dev": "electron .",
-    "build": "tsc -p tsconfig.json && electron-builder",
-    "build:win": "tsc -p tsconfig.json && electron-builder --win",
-    "build:mac": "tsc -p tsconfig.json && electron-builder --mac",
-    "build:linux": "tsc -p tsconfig.json && electron-builder --linux"
+    "build:ui": "node -e \"const {execSync}=require('child_process'),{cpSync,rmSync}=require('fs');rmSync('renderer',{recursive:true,force:true});execSync('pnpm --filter @workspace/jarvis-ui run build',{cwd:'..',stdio:'inherit',env:{...process.env,BASE_PATH:'./'}});cpSync('../artifacts/jarvis-ui/dist/public','renderer',{recursive:true});console.log('[Build] UI copied to renderer/ OK')\"",
+    "build": "npm run build:ui && tsc -p tsconfig.json && electron-builder",
+    "build:win": "npm run build:ui && tsc -p tsconfig.json && electron-builder --win",
+    "build:mac": "npm run build:ui && tsc -p tsconfig.json && electron-builder --mac",
+    "build:linux": "npm run build:ui && tsc -p tsconfig.json && electron-builder --linux"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
