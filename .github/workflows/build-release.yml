@@ -7,94 +7,87 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to build (e.g. 1.0.2)"
+        description: "Version tag (e.g. v1.1.0)"
         required: true
-        default: "1.0.0"
+        default: "v1.1.0"
 
 permissions:
   contents: write
 
 jobs:
+  # ─── Windows ────────────────────────────────────────────────────────────────
   build-windows:
-    name: Build Windows Installer
+    name: 🪟 Windows Installer (.exe)
     runs-on: windows-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install pnpm
         run: npm install -g pnpm@9
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Patch pnpm-workspace.yaml for CI
+      - name: Patch workspace for CI (no Replit plugins)
         shell: bash
         run: cp ci-pnpm-workspace.yaml pnpm-workspace.yaml
 
-      - name: Install pnpm deps
+      - name: Install workspace dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build API Server
         run: pnpm --filter @workspace/api-server run build
 
-      - name: Copy API Server to Electron resources
+      - name: Copy API Server → electron/api-server
+        shell: bash
         run: |
           mkdir -p electron/api-server
           cp artifacts/api-server/dist/index.js electron/api-server/
 
-      - name: Build React UI
+      - name: Build React UI (BASE_PATH=./ for file:// protocol)
         run: pnpm --filter @workspace/jarvis-ui run build
         env:
           BASE_PATH: "./"
 
-      - name: Copy React UI to Electron renderer
+      - name: Copy React UI → electron/renderer
         shell: bash
         run: |
+          rm -rf electron/renderer
           mkdir -p electron/renderer
           cp -r artifacts/jarvis-ui/dist/public/. electron/renderer/
 
-      - name: Install Pillow for icon generation
-        run: pip install pillow
+      - name: Generate app icons
+        run: |
+          pip install pillow --quiet
+          python scripts/make_icon.py electron/assets
 
-      - name: Generate JARVIS icons
-        run: python scripts/make_icon.py electron/assets
-
-      - name: Verify icons exist
+      - name: Verify icons
         shell: bash
         run: |
-          echo "Icons check:"
-          ls -la electron/assets/ || true
-          test -f electron/assets/jarvis.ico || (echo "ERROR: jarvis.ico not found" && exit 1)
-          test -f electron/assets/tray-icon.png || (echo "ERROR: tray-icon.png not found" && exit 1)
-          echo "All icons OK"
+          test -f electron/assets/jarvis.ico || (echo "❌ jarvis.ico missing" && exit 1)
+          test -f electron/assets/tray-icon.png || (echo "❌ tray-icon.png missing" && exit 1)
+          echo "✅ Icons OK"
 
-      - name: Install PyInstaller
-        run: pip install setuptools wheel pyinstaller
-        continue-on-error: true
-
-      - name: Install Python app deps
+      - name: Install Python deps
         run: pip install -r desktop/requirements.txt
         continue-on-error: true
 
-      - name: Install Electron deps
+      - name: Install Electron dependencies
         working-directory: electron
         run: npm install
 
-      - name: Build Electron Windows installer
+      - name: Build Windows installer (skip build:ui — already done above)
         working-directory: electron
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:win
+        run: npx tsc -p tsconfig.json && npx electron-builder --win
 
-      - name: Upload Windows installer
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-Windows
@@ -102,37 +95,36 @@ jobs:
             electron/dist-app/*.exe
             electron/dist-app/*.blockmap
             electron/dist-app/latest.yml
+          if-no-files-found: warn
 
+  # ─── macOS ──────────────────────────────────────────────────────────────────
   build-macos:
-    name: Build macOS DMG
+    name: 🍎 macOS DMG
     runs-on: macos-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install pnpm
         run: npm install -g pnpm@9
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Patch pnpm-workspace.yaml for CI
+      - name: Patch workspace for CI
         run: cp ci-pnpm-workspace.yaml pnpm-workspace.yaml
 
-      - name: Install pnpm deps
+      - name: Install workspace dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build API Server
         run: pnpm --filter @workspace/api-server run build
 
-      - name: Copy API Server to Electron resources
+      - name: Copy API Server → electron/api-server
         run: |
           mkdir -p electron/api-server
           cp artifacts/api-server/dist/index.js electron/api-server/
@@ -142,25 +134,26 @@ jobs:
         env:
           BASE_PATH: "./"
 
-      - name: Copy React UI to Electron renderer
+      - name: Copy React UI → electron/renderer
         run: |
+          rm -rf electron/renderer
           mkdir -p electron/renderer
           cp -r artifacts/jarvis-ui/dist/public/. electron/renderer/
 
-      - name: Install Pillow and generate icons
-        run: pip install pillow && python scripts/make_icon.py electron/assets
+      - name: Generate app icons
+        run: pip install pillow --quiet && python scripts/make_icon.py electron/assets
 
-      - name: Install Electron deps
+      - name: Install Electron dependencies
         working-directory: electron
         run: npm install
 
-      - name: Build Electron macOS DMG
+      - name: Build macOS DMG
         working-directory: electron
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:mac
+        run: npx tsc -p tsconfig.json && npx electron-builder --mac
 
-      - name: Upload macOS installer
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-macOS
@@ -168,37 +161,36 @@ jobs:
             electron/dist-app/*.dmg
             electron/dist-app/*.blockmap
             electron/dist-app/latest-mac.yml
+          if-no-files-found: warn
 
+  # ─── Linux ──────────────────────────────────────────────────────────────────
   build-linux:
-    name: Build Linux AppImage
+    name: 🐧 Linux AppImage
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install pnpm
         run: npm install -g pnpm@9
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Patch pnpm-workspace.yaml for CI
+      - name: Patch workspace for CI
         run: cp ci-pnpm-workspace.yaml pnpm-workspace.yaml
 
-      - name: Install pnpm deps
+      - name: Install workspace dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build API Server
         run: pnpm --filter @workspace/api-server run build
 
-      - name: Copy API Server to Electron resources
+      - name: Copy API Server → electron/api-server
         run: |
           mkdir -p electron/api-server
           cp artifacts/api-server/dist/index.js electron/api-server/
@@ -208,58 +200,65 @@ jobs:
         env:
           BASE_PATH: "./"
 
-      - name: Copy React UI to Electron renderer
+      - name: Copy React UI → electron/renderer
         run: |
+          rm -rf electron/renderer
           mkdir -p electron/renderer
           cp -r artifacts/jarvis-ui/dist/public/. electron/renderer/
 
-      - name: Install Pillow and generate icons
-        run: pip install pillow && python scripts/make_icon.py electron/assets
+      - name: Generate app icons
+        run: pip install pillow --quiet && python scripts/make_icon.py electron/assets
 
-      - name: Install Electron deps
+      - name: Install Electron dependencies
         working-directory: electron
         run: npm install
 
-      - name: Build Electron Linux AppImage
+      - name: Build Linux AppImage
         working-directory: electron
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:linux
+        run: npx tsc -p tsconfig.json && npx electron-builder --linux
 
-      - name: Upload Linux installer
+      - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-Linux
           path: |
             electron/dist-app/*.AppImage
             electron/dist-app/latest-linux.yml
+          if-no-files-found: warn
 
-  create-release:
-    name: Create GitHub Release
+  # ─── Upload to Release ──────────────────────────────────────────────────────
+  upload-to-release:
+    name: 📦 Upload installers → GitHub Release
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     steps:
-      - name: Download all artifacts
+      - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
-          path: release-artifacts
+          path: release-files
           merge-multiple: true
 
-      - name: List release files
-        run: find release-artifacts -type f | sort
+      - name: List files to upload
+        run: find release-files -type f | sort
 
-      - name: Create Release
+      - name: Upload installers to existing GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name || inputs.version }}
+          # Не перезаписываем описание релиза — только добавляем файлы
+          body: ""
+          append_body: false
+          fail_on_unmatched_files: false
           files: |
-            release-artifacts/*.exe
-            release-artifacts/*.dmg
-            release-artifacts/*.AppImage
-            release-artifacts/*.blockmap
-            release-artifacts/*.yml
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+            release-files/*.exe
+            release-files/*.dmg
+            release-files/*.AppImage
+            release-files/*.blockmap
+            release-files/latest.yml
+            release-files/latest-mac.yml
+            release-files/latest-linux.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
