@@ -93,7 +93,7 @@ import { Link, useLocation } from "wouter";
               })}
             </nav>
             <div className="px-4 py-3 border-t border-[rgba(0,212,255,0.1)]">
-              <p className="text-[10px] text-muted-foreground/50 font-mono">FTPDev © 2026</p>
+              <p className="text-[10px] text-muted-foreground/50 font-mono">JARVIS © 2026</p>
             </div>
           </aside>
 

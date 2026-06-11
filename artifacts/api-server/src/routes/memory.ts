@@ -14,10 +14,9 @@ router.get("/entries", async (req, res) => {
     if (category && typeof category === "string") {
       conditions.push(eq(memoryEntriesTable.category, category));
     }
-    const query = db.select().from(memoryEntriesTable).orderBy(desc(memoryEntriesTable.createdAt)).limit(lim);
     const rows = conditions.length > 0
-      ? await db.select().from(memoryEntriesTable).where(conditions[0]).orderBy(desc(memoryEntriesTable.createdAt)).limit(lim)
-      : await query;
+      ? await db.select().from(memoryEntriesTable).where(and(...conditions)).orderBy(desc(memoryEntriesTable.createdAt)).limit(lim)
+      : await db.select().from(memoryEntriesTable).orderBy(desc(memoryEntriesTable.createdAt)).limit(lim);
     const result = rows.map((r) => ({
       ...r,
       tags: JSON.parse(r.tags || "[]"),
@@ -34,13 +33,15 @@ router.get("/entries", async (req, res) => {
 router.post("/entries", async (req, res) => {
   try {
     const { content, category, tags, importance } = req.body;
-    if (!content) return res.status(400).json({ error: "Content is required" });
+    if (!content || typeof content !== "string" || !content.trim()) {
+      return res.status(400).json({ error: "Content is required" });
+    }
 
     const [row] = await db.insert(memoryEntriesTable).values({
-      content,
+      content: content.trim().slice(0, 2000),
       category: category || "note",
-      tags: JSON.stringify(tags || []),
-      importance: importance ?? 3,
+      tags: JSON.stringify(Array.isArray(tags) ? tags : []),
+      importance: typeof importance === "number" ? importance : 3,
     }).returning();
 
     return res.status(201).json({
@@ -57,6 +58,9 @@ router.post("/entries", async (req, res) => {
 router.delete("/entries/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Invalid entry ID" });
+    }
     await db.delete(memoryEntriesTable).where(eq(memoryEntriesTable.id, id));
     return res.status(204).send();
   } catch (err) {
@@ -85,11 +89,13 @@ router.get("/tasks", async (req, res) => {
 router.post("/tasks", async (req, res) => {
   try {
     const { title, description, priority, dueDate } = req.body;
-    if (!title) return res.status(400).json({ error: "Title is required" });
+    if (!title || typeof title !== "string" || !title.trim()) {
+      return res.status(400).json({ error: "Title is required" });
+    }
 
     const [row] = await db.insert(tasksTable).values({
-      title,
-      description: description ?? null,
+      title: title.trim().slice(0, 500),
+      description: description ? String(description).slice(0, 2000) : null,
       priority: priority || "medium",
       status: "pending",
       dueDate: dueDate ?? null,
@@ -111,13 +117,16 @@ router.post("/tasks", async (req, res) => {
 router.patch("/tasks/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Invalid task ID" });
+    }
     const { title, status, priority, description } = req.body;
 
     const updates: Partial<typeof tasksTable.$inferInsert> = {};
-    if (title !== undefined) updates.title = title;
-    if (status !== undefined) updates.status = status;
-    if (priority !== undefined) updates.priority = priority;
-    if (description !== undefined) updates.description = description;
+    if (title !== undefined) updates.title = String(title).trim().slice(0, 500);
+    if (status !== undefined) updates.status = String(status);
+    if (priority !== undefined) updates.priority = String(priority);
+    if (description !== undefined) updates.description = description ? String(description).slice(0, 2000) : null;
     if (status === "done") updates.completedAt = new Date();
 
     const [row] = await db.update(tasksTable).set(updates).where(eq(tasksTable.id, id)).returning();
@@ -140,6 +149,9 @@ router.patch("/tasks/:id", async (req, res) => {
 router.delete("/tasks/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "Invalid task ID" });
+    }
     await db.delete(tasksTable).where(eq(tasksTable.id, id));
     return res.status(204).send();
   } catch (err) {

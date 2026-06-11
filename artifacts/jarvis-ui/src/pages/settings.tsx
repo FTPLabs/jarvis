@@ -12,6 +12,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
     wakeWordEnabled: boolean;
     language: string;
     ollamaModel: string;
+    ollamaUrl: string;
+    youtubeChannelId: string | null;
+    youtubeApiKey: string | null;
+    tiktokUsername: string | null;
+    reminderInterval: number;
+    waterReminderEnabled: boolean;
+    breakReminderEnabled: boolean;
+    sleepReminderEnabled: boolean;
+    sleepTime: string;
   }
 
   export default function Settings() {
@@ -26,7 +35,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
     const save = useMutation({
       mutationFn: (settings: Partial<SettingsData>) =>
-        apiFetch("/api/settings", { method: "POST", body: JSON.stringify(settings) }),
+        apiFetch("/api/settings", { method: "PATCH", body: JSON.stringify(settings) }),
       onSuccess: () => {
         toast.success("Настройки сохранены");
         qc.invalidateQueries({ queryKey: ["settings"] });
@@ -35,8 +44,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
       onError: () => toast.error("Ошибка сохранения"),
     });
 
-    function Field({ label, name, type = "text", options }: {
-      label: string; name: keyof SettingsData; type?: string; options?: string[];
+    function Field({ label, name, type = "text", options, placeholder }: {
+      label: string; name: keyof SettingsData; type?: string; options?: string[]; placeholder?: string;
     }) {
       return (
         <div>
@@ -64,6 +73,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
               type={type}
               value={String(form[name] ?? "")}
               onChange={(e) => setForm((f) => ({ ...f, [name]: e.target.value }))}
+              placeholder={placeholder}
               className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(0,212,255,0.2)] rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-muted-foreground outline-none focus:border-[#00d4ff] transition-colors"
             />
           )}
@@ -78,7 +88,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <SettingsIcon className="w-5 h-5 text-[#00d4ff]" /> Настройки
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">Конфигурация голосового движка</p>
+            <p className="text-muted-foreground text-sm mt-1">Конфигурация голосового движка JARVIS</p>
           </div>
 
           <div className="glass-panel rounded-xl p-5 space-y-5">
@@ -90,13 +100,34 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
           <div className="glass-panel rounded-xl p-5 space-y-5">
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Пробуждение</p>
-            <Field label="Ключевое слово" name="wakeWord" />
+            <Field label="Ключевое слово" name="wakeWord" placeholder="Джарвис" />
             <Field label="Активация по слову" name="wakeWordEnabled" type="checkbox" />
           </div>
 
           <div className="glass-panel rounded-xl p-5 space-y-5">
-            <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">AI</p>
-            <Field label="Модель Ollama" name="ollamaModel" />
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">AI — Ollama</p>
+            <Field label="Адрес Ollama" name="ollamaUrl" placeholder="http://127.0.0.1:11434" />
+            <Field label="Модель Ollama" name="ollamaModel" placeholder="llama3:8b" />
+          </div>
+
+          <div className="glass-panel rounded-xl p-5 space-y-5">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">Напоминания</p>
+            <Field label="Интервал напоминаний (мин)" name="reminderInterval" type="number" />
+            <Field label="Напоминание о воде" name="waterReminderEnabled" type="checkbox" />
+            <Field label="Напоминание о перерывах" name="breakReminderEnabled" type="checkbox" />
+            <Field label="Напоминание о сне" name="sleepReminderEnabled" type="checkbox" />
+            <Field label="Время сна" name="sleepTime" placeholder="23:00" />
+          </div>
+
+          <div className="glass-panel rounded-xl p-5 space-y-5">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">YouTube Analytics</p>
+            <Field label="ID канала YouTube" name="youtubeChannelId" placeholder="UCxxxxxxxxxxxxxxxx" />
+            <Field label="YouTube API Key" name="youtubeApiKey" placeholder="AIzaSy..." />
+          </div>
+
+          <div className="glass-panel rounded-xl p-5 space-y-5">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">TikTok Analytics</p>
+            <Field label="Имя пользователя TikTok" name="tiktokUsername" placeholder="@username" />
           </div>
 
           <button
@@ -111,4 +142,3 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
       </Layout>
     );
   }
-  

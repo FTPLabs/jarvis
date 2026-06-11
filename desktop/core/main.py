@@ -193,7 +193,7 @@ async def process_command(req: CommandRequest):
   # Build enriched prompt with learning context
   context = ""
   if learning:
-      context = learning.get_context_for_ai()
+      context = learning.build_context()
 
   # System prompt in Russian
   system_prompt = f"""Ты JARVIS — персональный голосовой ассистент на русском языке, как в фильме Железный человек.

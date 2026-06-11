@@ -25,8 +25,23 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
+
+// CORS: разрешаем только localhost (десктопное приложение)
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://localhost:8081",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8081",
+    // Electron file:// protocol
+    "null",
+  ],
+  credentials: true,
+}));
+
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);

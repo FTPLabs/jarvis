@@ -244,7 +244,7 @@ class VoiceEngine:
       self.listening = True
       log.info("Голосовой движок запущен")
       try:
-          self.speak("ХОЗЯЙН, JARVIS запущен и готов к работе.")
+          self.speak("ХОЗЯИН, JARVIS запущен и готов к работе.")
       except Exception:
           pass
 

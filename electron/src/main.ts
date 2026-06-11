@@ -69,6 +69,9 @@ function startPythonCore(): void {
         setTimeout(startPythonCore, delay);
       } else {
         console.error("Python Core: превышен лимит перезапусков (5). Проверьте зависимости.");
+        if (Notification.isSupported()) {
+          new Notification({ title: "JARVIS — Ошибка ядра", body: "Python Core не запускается (5 попыток). Проверьте установку зависимостей.", silent: false }).show();
+        }
       }
     }
   });

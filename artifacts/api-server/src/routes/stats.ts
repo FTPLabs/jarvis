@@ -9,8 +9,37 @@ import { Router } from "express";
   let sessionCommands = 0;
   const jarvisStartTime = Date.now();
 
+  /**
+   * Вычисляет загрузку CPU через два среза os.cpus() с интервалом 100мс.
+   * Возвращает число 0-100 (процент), или null если не удалось.
+   */
+  async function getCpuPercent(): Promise<number | null> {
+    function snapshot() {
+      return os.cpus().map((c) => ({
+        idle: c.times.idle,
+        total: Object.values(c.times).reduce((a, b) => a + b, 0),
+      }));
+    }
+    try {
+      const before = snapshot();
+      await new Promise<void>((r) => setTimeout(r, 100));
+      const after = snapshot();
+      let totalDelta = 0, idleDelta = 0;
+      for (let i = 0; i < before.length; i++) {
+        totalDelta += (after[i].total - before[i].total);
+        idleDelta += (after[i].idle - before[i].idle);
+      }
+      if (totalDelta === 0) return 0;
+      return Math.round((1 - idleDelta / totalDelta) * 1000) / 10;
+    } catch {
+      return null;
+    }
+  }
+
   router.get("/system", async (req, res) => {
     try {
+      const [cpuPercent] = await Promise.all([getCpuPercent()]);
+
       const totalMem = os.totalmem();
       const freeMem = os.freemem();
       const usedMem = totalMem - freeMem;
@@ -23,7 +52,7 @@ import { Router } from "express";
       sessionCommands = activityRows.filter(r => r.timestamp >= sessionStart).length;
 
       return res.json({
-        cpuPercent: null,
+        cpuPercent,
         ramPercent: Math.round(ramPercent * 10) / 10,
         ramUsedGb: Math.round((usedMem / 1024 / 1024 / 1024) * 100) / 100,
         ramTotalGb: Math.round((totalMem / 1024 / 1024 / 1024) * 100) / 100,
@@ -71,7 +100,6 @@ import { Router } from "express";
         });
       }
 
-      // Реальный вызов YouTube Data API v3
       const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`;
       const channelRes = await fetch(channelUrl, { signal: AbortSignal.timeout(8000) });
 
@@ -96,7 +124,6 @@ import { Router } from "express";
       const totalViews = Number(item.statistics.viewCount);
       const videoCount = Number(item.statistics.videoCount);
 
-      // Последнее видео
       let lastVideoTitle: string | null = null;
       let lastVideoViews: number | null = null;
       try {
@@ -117,7 +144,6 @@ import { Router } from "express";
         }
       } catch { /* последнее видео — не критично */ }
 
-      // Оценочный доход: ~$1-4 за 1000 просмотров (медиана $2)
       const estimatedMonthlyRevenue = lastVideoViews ? Math.round(lastVideoViews * 0.002 * 100) / 100 : null;
 
       return res.json({
@@ -148,8 +174,6 @@ import { Router } from "express";
         });
       }
 
-      // TikTok не предоставляет публичный API для третьих сторон.
-      // Возвращаем честный статус: настроено, но данные недоступны без официального доступа.
       return res.json({
         username,
         followers: null,
@@ -166,4 +190,3 @@ import { Router } from "express";
   });
 
   export default router;
-  
