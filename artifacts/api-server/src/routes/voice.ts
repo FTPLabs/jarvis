@@ -1,282 +1,201 @@
-"""
-JARVIS Voice Engine — Русский голосовой движок
-Wake word → STT (Whisper, русский) → Обработка → TTS (edge-tts, DmitryNeural)
-Не требует нажатий — работает полностью голосом.
-"""
+import { Router } from "express";
+import { logger } from "../lib/logger";
+import { db } from "@workspace/db";
+import { activityLogTable, memoryEntriesTable, settingsTable } from "@workspace/db";
+import { desc } from "drizzle-orm";
+import crypto from "crypto";
 
-import os
-import time
-import wave
-import struct
-import asyncio
-import logging
-import threading
-import tempfile
-import platform
-import subprocess
-from pathlib import Path
-from typing import Optional, Callable
+const router = Router();
+const MAX_SCREEN_LOG = 200;
 
-log = logging.getLogger("jarvis.voice")
+let voiceState = {
+  listening: true,
+  sttEngine: "whisper",
+  ttsEngine: "piper",
+  wakeWordEnabled: true,
+  wakeWord: "Джарвис",
+  ollamaConnected: false,
+  ollamaModel: "llama3:8b",
+  language: "ru",
+};
 
-JARVIS_DIR = Path.home() / ".jarvis"
+async function syncVoiceStateFromDB(): Promise<void> {
+  try {
+    const rows = await db.select().from(settingsTable);
+    const map: Record<string, string> = {};
+    for (const row of rows) map[row.key] = row.value;
+    if (map.sttEngine) voiceState.sttEngine = map.sttEngine;
+    if (map.ttsEngine) voiceState.ttsEngine = map.ttsEngine;
+    if (map.wakeWord) voiceState.wakeWord = map.wakeWord;
+    if (map.wakeWordEnabled !== undefined) voiceState.wakeWordEnabled = map.wakeWordEnabled === "true";
+    if (map.language) voiceState.language = map.language;
+    if (map.ollamaModel) voiceState.ollamaModel = map.ollamaModel;
+  } catch (err) {
+    logger.warn({ err }, "[voice] Не удалось синхронизировать настройки из БД");
+  }
+}
+syncVoiceStateFromDB().catch(() => {});
 
-# TTS: сначала пробуем pyttsx3 (офлайн), затем edge-tts (онлайн, требует интернет)
-# Это гарантирует работу без интернета и минимальную задержку при первом запросе
-TTS_VOICE = "ru-RU-DmitryNeural"
-TTS_RATE = "+5%"   # чуть быстрее стандартного — звучит увереннее
-TTS_PREFER_OFFLINE = True  # сначала pyttsx3 (офлайн), edge-tts как резерв
+const learningData = {
+  conversationCount: 0,
+  learnedFacts: {} as Record<string, string>,
+  commandFrequency: {} as Record<string, number>,
+  userName: "ХОЗЯИН",
+  topApps: [] as string[],
+  screenLog: [] as Array<{ ts: string; event: string; data: string }>,
+};
 
+async function checkOllama(): Promise<boolean> {
+  try {
+    const res = await fetch("http://127.0.0.1:11434/api/tags", { signal: AbortSignal.timeout(2000) });
+    return res.ok;
+  } catch { return false; }
+}
 
-class VoiceEngine:
-  """
-  Локальный голосовой пайплайн (офлайн STT + онлайн TTS через edge-tts):
-  Wake Word → STT → Команда → TTS
-  """
+async function askOllama(userText: string, context: string): Promise<string | null> {
+  try {
+    const systemPrompt = [
+      "Ты JARVIS — персональный голосовой ассистент на русском языке.",
+      "Отвечай ТОЛЬКО по-русски. Кратко и чётко — максимум 2 предложения.",
+      'Обращайся к пользователю "ХОЗЯИН" — именно так, всегда.',
+      context ? "Контекст о пользователе:\n" + context : "",
+    ].filter(Boolean).join("\n");
 
-  def __init__(self, config: dict, on_command: Callable[[str], str]):
-      self.config = config
-      self.on_command = on_command
-      self.listening = False
-      self.interrupted = False
-      self._thread: Optional[threading.Thread] = None
-      self._whisper_model = None
+    const res = await fetch("http://127.0.0.1:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: voiceState.ollamaModel,
+        prompt: systemPrompt + "\n\nПользователь: " + userText + "\nJARVIS:",
+        stream: false,
+        options: { temperature: 0.7, num_predict: 120 },
+      }),
+      signal: AbortSignal.timeout(25000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { response?: string };
+    return data.response?.trim() ?? null;
+  } catch { return null; }
+}
 
-  # ─── Wake Word — VAD (без ключа Porcupine) ─────────────────────────
-  def _detect_wake_word_vad(self) -> bool:
-      try:
-          import pyaudio
-          import numpy as np
+async function logActivity(type: string, message: string, detail?: string) {
+  try {
+    await db.insert(activityLogTable).values({
+      type,
+      message: message.slice(0, 500),
+      detail: detail?.slice(0, 500) ?? null,
+    });
+  } catch (err) {
+    logger.error({ err }, "[logActivity] DB error");
+  }
+}
 
-          pa = pyaudio.PyAudio()
-          CHUNK = 1024
-          RATE = 16000
-          THRESHOLD = 800
+function buildContext(): string {
+  const lines: string[] = [];
+  if (learningData.userName !== "ХОЗЯИН") lines.push("Имя: " + learningData.userName);
+  const facts = Object.entries(learningData.learnedFacts).slice(0, 8);
+  if (facts.length) {
+    lines.push("Известные факты:");
+    facts.forEach(([k, v]) => lines.push("  " + k + ": " + v));
+  }
+  const topCmds = Object.entries(learningData.commandFrequency)
+    .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([cmd]) => cmd);
+  if (topCmds.length) lines.push("Частые запросы: " + topCmds.join(", "));
+  return lines.join("\n");
+}
 
-          stream = pa.open(
-              format=pyaudio.paInt16, channels=1, rate=RATE,
-              input=True, frames_per_buffer=CHUNK,
-          )
-          log.info("JARVIS слушает (VAD режим)...")
+function learnFromText(text: string) {
+  const key = text.slice(0, 50).toLowerCase();
+  learningData.commandFrequency[key] = (learningData.commandFrequency[key] ?? 0) + 1;
+  learningData.conversationCount++;
 
-          while not self.interrupted:
-              data = stream.read(CHUNK, exception_on_overflow=False)
-              audio_data = np.frombuffer(data, dtype=np.int16)
-              rms = np.sqrt(np.mean(audio_data.astype(np.float32) ** 2))
-              if rms > THRESHOLD:
-                  stream.stop_stream(); stream.close(); pa.terminate()
-                  return True
+  const nameMatch = text.match(/меня зовут\s+(\w+)/i);
+  if (nameMatch) {
+    learningData.userName = nameMatch[1];
+    learningData.learnedFacts["имя"] = nameMatch[1];
+    db.insert(memoryEntriesTable)
+      .values({ content: nameMatch[1], category: "name", importance: 5 })
+      .catch((err) => logger.warn({ err }, "[learnFromText] Ошибка записи имени в БД"));
+  }
 
-          stream.stop_stream(); stream.close(); pa.terminate()
-      except ImportError:
-          log.warning("pyaudio/numpy не установлены — голосовое управление недоступно")
-          time.sleep(5)
-      except Exception as e:
-          log.error(f"VAD ошибка: {e}")
-          time.sleep(1)
-      return False
+  const likeMatch = text.match(/я (люблю|предпочитаю|обожаю)\s+(.+)/i);
+  if (likeMatch) {
+    const pref = likeMatch[2].slice(0, 60);
+    learningData.learnedFacts["предпочтение_" + Date.now()] = pref;
+    db.insert(memoryEntriesTable)
+      .values({ content: pref, category: "preference", importance: 3 })
+      .catch((err) => logger.warn({ err }, "[learnFromText] Ошибка записи предпочтения в БД"));
+  }
+}
 
-  def _detect_wake_word_porcupine(self) -> bool:
-      try:
-          import pvporcupine, pyaudio
-          access_key = self.config.get("porcupineKey", "")
-          if not access_key:
-              return False
-          porcupine = pvporcupine.create(access_key=access_key, keywords=["jarvis"])
-          pa = pyaudio.PyAudio()
-          stream = pa.open(
-              rate=porcupine.sample_rate, channels=1, format=pyaudio.paInt16,
-              input=True, frames_per_buffer=porcupine.frame_length,
-          )
-          log.info("Ожидание слова 'Джарвис'...")
-          while not self.interrupted:
-              pcm = stream.read(porcupine.frame_length, exception_on_overflow=False)
-              pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
-              if porcupine.process(pcm) >= 0:
-                  log.info("Слово обнаружено!")
-                  stream.stop_stream(); stream.close(); pa.terminate(); porcupine.delete()
-                  return True
-      except ImportError:
-          pass
-      except Exception as e:
-          log.error(f"Porcupine ошибка: {e}")
-      return False
+router.get("/status", async (req, res) => {
+  voiceState.ollamaConnected = await checkOllama();
+  return res.json({
+    ...voiceState,
+    sessionId: crypto.randomUUID(),
+    learnedFacts: Object.keys(learningData.learnedFacts).length,
+    conversationCount: learningData.conversationCount,
+    userName: learningData.userName,
+  });
+});
 
-  def _detect_wake_word(self) -> bool:
-      if self.config.get("porcupineKey"):
-          if self._detect_wake_word_porcupine():
-              return True
-      return self._detect_wake_word_vad()
+router.post("/listen", async (req, res) => {
+  try {
+    const { enabled } = req.body as { enabled?: boolean };
+    if (enabled !== undefined) voiceState.listening = Boolean(enabled);
+    const action = voiceState.listening ? "started" : "stopped";
+    await logActivity("voice", "Прослушивание " + action);
+    return res.json({ listening: voiceState.listening, action });
+  } catch (err) { req.log.error(err); return res.status(500).json({ error: "Internal server error" }); }
+});
 
-  # ─── STT — Whisper (русский) ────────────────────────────────────────
-  def transcribe(self, audio_path: str) -> str:
-      try:
-          import whisper
-          if self._whisper_model is None:
-              model_name = self.config.get("whisperModel", "small")
-              log.info(f"Загрузка Whisper '{model_name}'...")
-              self._whisper_model = whisper.load_model(model_name)
-          result = self._whisper_model.transcribe(
-              audio_path, language="ru", task="transcribe", fp16=False,
-              initial_prompt="Команды на русском для голосового ассистента.",
-          )
-          text = result["text"].strip()
-          log.info(f"Распознано: {text}")
-          return text
-      except ImportError:
-          log.error("Whisper не установлен: pip install openai-whisper")
-      except Exception as e:
-          log.error(f"STT ошибка: {e}")
-      return ""
+router.post("/command", async (req, res) => {
+  try {
+    const { text, source } = req.body as { text?: string; source?: string };
+    if (!text || typeof text !== "string" || !text.trim()) {
+      return res.status(400).json({ error: "text is required" });
+    }
+    const userText = text.trim().slice(0, 1000);
+    learnFromText(userText);
+    await logActivity("command", userText, source ?? "api");
+    const context = buildContext();
+    voiceState.ollamaConnected = await checkOllama();
+    let response: string;
+    if (voiceState.ollamaConnected) {
+      response = (await askOllama(userText, context)) ?? "Команда принята: " + userText;
+    } else {
+      response = "Ollama недоступна. Команда: " + userText;
+    }
+    await logActivity("response", response.slice(0, 200));
+    return res.json({ response, source: source ?? "api", learned: true, ollamaUsed: voiceState.ollamaConnected });
+  } catch (err) { req.log.error(err); return res.status(500).json({ error: "Internal server error" }); }
+});
 
-  # ─── Запись с микрофона ─────────────────────────────────────────────
-  def record_audio(self, duration: float = 6.0) -> Optional[str]:
-      try:
-          import pyaudio, numpy as np
-          pa = pyaudio.PyAudio()
-          sample_rate, chunk = 16000, 1024
-          silence_threshold = 500
-          max_silence_chunks = int(sample_rate / chunk * 1.5)
+router.post("/screen-event", async (req, res) => {
+  try {
+    const { event, data } = req.body as { event?: string; data?: string };
+    if (!event) return res.status(400).json({ error: "event is required" });
+    const entry = { ts: new Date().toISOString(), event: String(event), data: String(data ?? "") };
+    learningData.screenLog.push(entry);
+    if (learningData.screenLog.length > MAX_SCREEN_LOG) {
+      learningData.screenLog.splice(0, learningData.screenLog.length - MAX_SCREEN_LOG);
+    }
+    return res.json({ ok: true });
+  } catch (err) { req.log.error(err); return res.status(500).json({ error: "Internal server error" }); }
+});
 
-          stream = pa.open(
-              format=pyaudio.paInt16, channels=1, rate=sample_rate,
-              input=True, frames_per_buffer=chunk,
-          )
-          log.info("Запись команды...")
-          frames, silence_count = [], 0
-          max_chunks = int(sample_rate / chunk * duration)
+router.get("/learning", async (req, res) => {
+  return res.json({
+    conversationCount: learningData.conversationCount,
+    learnedFacts: learningData.learnedFacts,
+    commandFrequency: learningData.commandFrequency,
+    userName: learningData.userName,
+    topApps: learningData.topApps,
+  });
+});
 
-          for _ in range(max_chunks):
-              data = stream.read(chunk, exception_on_overflow=False)
-              frames.append(data)
-              rms = np.sqrt(np.mean(np.frombuffer(data, dtype=np.int16).astype(np.float32) ** 2))
-              silence_count = silence_count + 1 if rms < silence_threshold else 0
-              if silence_count > max_silence_chunks:
-                  break
+export function updateVoiceStateSettings(updates: Partial<typeof voiceState>): void {
+  Object.assign(voiceState, updates);
+}
 
-          stream.stop_stream(); stream.close(); pa.terminate()
-
-          tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-          with wave.open(tmp.name, "wb") as wf:
-              wf.setnchannels(1)
-              wf.setsampwidth(pa.get_sample_size(pyaudio.paInt16))
-              wf.setframerate(sample_rate)
-              wf.writeframes(b"".join(frames))
-          return tmp.name
-      except ImportError:
-          log.error("pyaudio не установлен")
-      except Exception as e:
-          log.error(f"Ошибка записи: {e}")
-      return None
-
-  # ─── TTS — edge-tts (Microsoft DmitryNeural, человекоподобный) ─────
-  def speak(self, text: str) -> None:
-      """Синтез речи через Microsoft edge-tts (DmitryNeural — живой мужской голос)."""
-      if not text or not text.strip():
-          return
-      # Запускаем async edge-tts в отдельном event loop
-      try:
-          loop = asyncio.new_event_loop()
-          asyncio.set_event_loop(loop)
-          audio_path = loop.run_until_complete(self._speak_edge(text))
-          loop.close()
-          if audio_path:
-              self._play_audio(audio_path)
-              try:
-                  os.unlink(audio_path)
-              except Exception:
-                  pass
-      except Exception as e:
-          log.error(f"edge-tts ошибка: {e}")
-          self._speak_fallback(text)
-
-  async def _speak_edge(self, text: str) -> Optional[str]:
-      """Async: генерация MP3 через edge-tts."""
-      try:
-          import edge_tts
-          voice = self.config.get("ttsVoice", TTS_VOICE)
-          rate = self.config.get("ttsRate", TTS_RATE)
-          communicate = edge_tts.Communicate(text, voice, rate=rate)
-          tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-          await communicate.save(tmp.name)
-          return tmp.name
-      except ImportError:
-          log.error("edge-tts не установлен: pip install edge-tts")
-      except Exception as e:
-          log.error(f"edge-tts генерация: {e}")
-      return None
-
-  def _speak_fallback(self, text: str) -> None:
-      """Запасной TTS: системный голос Windows."""
-      try:
-          if platform.system() == "Windows":
-              # PowerShell SAPI — встроен в Windows, без установки
-              ps_cmd = (
-                  f"Add-Type -AssemblyName System.Speech; "
-                  f"$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-                  f"$s.Rate = 2; $s.Speak('{text.replace(chr(39), chr(96))}');"
-              )
-              subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, timeout=30)
-      except Exception as e:
-          log.error(f"Fallback TTS ошибка: {e}")
-
-  def _play_audio(self, path: str) -> None:
-      try:
-          if platform.system() == "Windows":
-              import winsound
-              # winsound не поддерживает MP3 — используем PowerShell Media.Player
-              ps_cmd = (
-                  f"$p = New-Object System.Windows.Media.MediaPlayer; "
-                  f"$p.Open([uri]'{path}'); $p.Play(); "
-                  f"Start-Sleep -Milliseconds 10000; $p.Close()"
-              )
-              subprocess.run(["powershell", "-Command", ps_cmd],
-                             capture_output=True, timeout=60)
-          elif platform.system() == "Darwin":
-              subprocess.run(["afplay", path], timeout=60)
-          else:
-              subprocess.run(["mpg123", "-q", path], timeout=60)
-      except Exception as e:
-          log.error(f"Воспроизведение: {e}")
-
-  # ─── Основной цикл ───────────────────────────────────────────────────
-  def run(self) -> None:
-      self.listening = True
-      log.info("Голосовой движок запущен")
-      try:
-          self.speak("ХОЗЯЙН, JARVIS запущен и готов к работе.")
-      except Exception:
-          pass
-
-      while self.listening:
-          try:
-              if self.config.get("wakeWordEnabled", True):
-                  if not self._detect_wake_word():
-                      time.sleep(0.1)
-                      continue
-              log.info("Слушаю команду...")
-              audio_path = self.record_audio(duration=8.0)
-              if not audio_path:
-                  continue
-              text = self.transcribe(audio_path)
-              try:
-                  os.unlink(audio_path)
-              except Exception:
-                  pass
-              if not text or len(text.strip()) < 2:
-                  continue
-              log.info(f"Команда: {text}")
-              response = self.on_command(text)
-              if response:
-                  self.speak(response)
-          except Exception as e:
-              log.error(f"Ошибка цикла: {e}")
-              time.sleep(1)
-
-  def start(self) -> None:
-      self._thread = threading.Thread(target=self.run, daemon=True)
-      self._thread.start()
-
-  def stop(self) -> None:
-      self.listening = False
-      self.interrupted = True
+export default router;
