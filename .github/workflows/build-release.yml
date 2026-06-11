@@ -44,6 +44,8 @@ jobs:
 
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
+        env:
+          BASE_PATH: "./"
 
       - name: Copy React UI to Electron renderer
         shell: bash
@@ -121,6 +123,8 @@ jobs:
 
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
+        env:
+          BASE_PATH: "./"
 
       - name: Copy React UI to Electron renderer
         run: |
@@ -177,6 +181,8 @@ jobs:
 
       - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
+        env:
+          BASE_PATH: "./"
 
       - name: Copy React UI to Electron renderer
         run: |
