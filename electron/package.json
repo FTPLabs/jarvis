@@ -1,6 +1,6 @@
 {
   "name": "jarvis-desktop",
-  "version": "1.0.12",
+  "version": "1.0.22",
   "description": "JARVIS AI Voice Assistant — FTPDev",
   "main": "dist/main.js",
   "author": "FTPDev <contact@ftpdev.ru>",
@@ -32,7 +32,8 @@
     "files": [
       "dist/**/*",
       "assets/**/*",
-      "renderer/**/*"
+      "renderer/**/*",
+      "api-server/**/*"
     ],
     "extraResources": [
       {
@@ -42,6 +43,10 @@
       {
         "from": "../desktop/config",
         "to": "config"
+      },
+      {
+        "from": "api-server",
+        "to": "api-server"
       }
     ],
     "win": {
