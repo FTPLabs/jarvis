@@ -20,6 +20,7 @@ const UI_PORT = isDev ? 5173 : 8080;
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let pythonProcess: ChildProcess | null = null;
+let apiProcess: ChildProcess | null = null;
 let forceQuit = false;
 let pythonRestartCount = 0;
 
@@ -81,7 +82,44 @@ function startPythonCore(): void {
   console.log(`JARVIS ядро запущено (PID: ${pythonProcess.pid})`);
 }
 
-// ─── Main Window ──────────────────────────────────────────────────────────
+
+  // ─── Express API Server ────────────────────────────────────────────────────
+  function startAPIServer(): void {
+    const apiPath = isDev
+      ? path.join(__dirname, "../../artifacts/api-server/dist/index.js")
+      : path.join(process.resourcesPath, "api-server/index.js");
+
+    if (!fs.existsSync(apiPath)) {
+      console.warn("[JARVIS API] Файл сервера не найден:", apiPath);
+      return;
+    }
+
+    const configPath = path.join(
+      isDev ? path.join(__dirname, "../../desktop/config") : path.join(process.resourcesPath, "config"),
+      "config.json"
+    );
+    let dbUrl = process.env["DATABASE_URL"] || "";
+    try {
+      if (fs.existsSync(configPath)) {
+        const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+        dbUrl = cfg.databaseUrl || dbUrl;
+      }
+    } catch { /* ignore */ }
+
+    apiProcess = spawn(process.execPath, [apiPath], {
+      stdio: ["pipe", "pipe", "pipe"],
+      detached: false,
+      env: { ...process.env, PORT: "8080", DATABASE_URL: dbUrl, NODE_ENV: "production" },
+    });
+    apiProcess.stdout?.on("data", (d) => console.log("[JARVIS API]", d.toString().trim()));
+    apiProcess.stderr?.on("data", (d) => console.error("[JARVIS API]", d.toString().trim()));
+    apiProcess.on("exit", (code) => {
+      console.log(`[JARVIS API] завершён (код: ${code})`);
+      apiProcess = null;
+    });
+    console.log(`[JARVIS API] запущен на порту 8080 (PID: ${apiProcess.pid})`);
+  }
+  // ─── Main Window ──────────────────────────────────────────────────────────
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -111,11 +149,18 @@ function createWindow(): void {
   }
 
   mainWindow.once("ready-to-show", () => {
-    // Не показываем окно сразу — только при клике на трей
     if (isDev) {
       mainWindow?.show();
       mainWindow?.webContents.openDevTools({ mode: "detach" });
+    } else {
+      // Продакшн: показываем окно при первом запуске
+      mainWindow?.show();
     }
+  });
+
+  // Логируем ошибки загрузки
+  mainWindow.webContents.on("did-fail-load", (_e, errCode, errDesc, url) => {
+    console.error(`[JARVIS UI] Ошибка загрузки: ${errDesc} (${errCode}) → ${url}`);
   });
 
   // Закрытие → скрыть в трей, не завершать
@@ -245,6 +290,8 @@ function setupWindowsAutoStart() {
 
 // ─── App Lifecycle ────────────────────────────────────────────────────────
 app.on("ready", async () => {
+  // API Server (Express)
+  startAPIServer();
   // Python core
   startPythonCore();
   await new Promise((r) => setTimeout(r, 2000));
@@ -281,6 +328,9 @@ app.on("before-quit", () => {
   forceQuit = true;
   if (pythonProcess && !pythonProcess.killed) {
     pythonProcess.kill("SIGTERM");
+  }
+  if (apiProcess && !apiProcess.killed) {
+    apiProcess.kill("SIGTERM");
   }
   tray?.destroy();
   globalShortcut.unregisterAll();
