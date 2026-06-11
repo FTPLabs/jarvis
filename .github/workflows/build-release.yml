@@ -43,14 +43,14 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build API Server
-          run: pnpm --filter @workspace/api-server run build
+        run: pnpm --filter @workspace/api-server run build
 
-        - name: Copy API Server to Electron resources
-          run: |
-            mkdir -p electron/api-server
-            cp artifacts/api-server/dist/index.js electron/api-server/
+      - name: Copy API Server to Electron resources
+        run: |
+          mkdir -p electron/api-server
+          cp artifacts/api-server/dist/index.js electron/api-server/
 
-        - name: Build React UI
+      - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
         env:
           BASE_PATH: "./"
@@ -130,14 +130,14 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build API Server
-          run: pnpm --filter @workspace/api-server run build
+        run: pnpm --filter @workspace/api-server run build
 
-        - name: Copy API Server to Electron resources
-          run: |
-            mkdir -p electron/api-server
-            cp artifacts/api-server/dist/index.js electron/api-server/
+      - name: Copy API Server to Electron resources
+        run: |
+          mkdir -p electron/api-server
+          cp artifacts/api-server/dist/index.js electron/api-server/
 
-        - name: Build React UI
+      - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
         env:
           BASE_PATH: "./"
@@ -196,14 +196,14 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build API Server
-          run: pnpm --filter @workspace/api-server run build
+        run: pnpm --filter @workspace/api-server run build
 
-        - name: Copy API Server to Electron resources
-          run: |
-            mkdir -p electron/api-server
-            cp artifacts/api-server/dist/index.js electron/api-server/
+      - name: Copy API Server to Electron resources
+        run: |
+          mkdir -p electron/api-server
+          cp artifacts/api-server/dist/index.js electron/api-server/
 
-        - name: Build React UI
+      - name: Build React UI
         run: pnpm --filter @workspace/jarvis-ui run build
         env:
           BASE_PATH: "./"
