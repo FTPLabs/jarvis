@@ -1,12 +1,11 @@
 import * as esbuild from "esbuild";
-  import { pino } from "esbuild-plugin-pino";
 
   await esbuild.build({
     entryPoints: ["src/index.ts"],
     bundle: true,
     platform: "node",
-    format: "esm",
-    outfile: "dist/index.mjs",
+    format: "cjs",
+    outfile: "dist/index.js",
     sourcemap: true,
     external: [
       "pg-native",
@@ -17,8 +16,7 @@ import * as esbuild from "esbuild";
       "tedious",
       "sqlite3",
     ],
-    plugins: [pino({ transports: ["pino-pretty"] })],
   });
 
-  console.log("✓ api-server built to dist/index.mjs");
+  console.log("\u2713 api-server built to dist/index.js");
   
