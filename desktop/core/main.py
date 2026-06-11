@@ -74,7 +74,8 @@ def get_hwid() -> str:
       else:
           raw = open("/etc/machine-id").read().strip()
   except Exception:
-      raw = platform.node() + str(os.getpid())
+      # Стабильный fallback: не используем PID (меняется при каждом запуске)
+      raw = platform.node() + platform.machine() + platform.processor()
   return hashlib.sha256(raw.encode()).hexdigest()[:32].upper()
 
 HWID = get_hwid()
@@ -294,7 +295,7 @@ def _route_command(text: str) -> str:
   if any(w in t for w in ["привет", "здравствуй", "добрый"]):
       hour = datetime.now().hour
       greeting = "Доброе утро" if 5 <= hour < 12 else "Добрый день" if 12 <= hour < 17 else "Добрый вечер"
-      name = learning.get_user_name() if learning else "ХОЗЯЙН"
+      name = learning.get_user_name() if learning else "ХОЗЯИН"
       return f"{greeting}, {name}! Готов к работе."
 
   # Learning: remember name
