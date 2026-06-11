@@ -21,10 +21,11 @@ log = logging.getLogger("jarvis.voice")
 
 JARVIS_DIR = Path.home() / ".jarvis"
 
-# edge-tts (ru-RU-DmitryNeural) требует интернет; при отсутствии — fallback на pyttsx3 (офлайн)
+# TTS: сначала пробуем pyttsx3 (офлайн), затем edge-tts (онлайн, требует интернет)
+# Это гарантирует работу без интернета и минимальную задержку при первом запросе
 TTS_VOICE = "ru-RU-DmitryNeural"
 TTS_RATE = "+5%"   # чуть быстрее стандартного — звучит увереннее
-TTS_OFFLINE_FALLBACK = True  # автоматический fallback на pyttsx3 при ошибке сети
+TTS_PREFER_OFFLINE = True  # сначала pyttsx3 (офлайн), edge-tts как резерв
 
 
 class VoiceEngine:
