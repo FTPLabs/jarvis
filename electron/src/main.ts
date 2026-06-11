@@ -103,11 +103,12 @@ function createWindow(): void {
     icon: path.join(__dirname, "../assets/jarvis.ico"),
   });
 
-  const url = isDev
-    ? `http://localhost:${UI_PORT}`
-    : `http://localhost:${UI_PORT}`;
-
-  mainWindow.loadURL(url);
+  if (isDev) {
+    mainWindow.loadURL(`http://localhost:${UI_PORT}`);
+  } else {
+    // Продакшн: загружаем статические файлы из renderer/ внутри пакета
+    mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
+  }
 
   mainWindow.once("ready-to-show", () => {
     // Не показываем окно сразу — только при клике на трей
