@@ -89,8 +89,8 @@ function createWindow(): void {
     minWidth: 1100,
     minHeight: 700,
     frame: false,
-    transparent: true,
-    backgroundColor: "#00000000",
+    transparent: false,
+    backgroundColor: "#050a14",  // Тёмно-синий фон #050a14 — совпадает с CSS --background
     alwaysOnTop: false,
     show: false, // Старт скрытым — только трей
     skipTaskbar: false,
