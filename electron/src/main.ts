@@ -263,7 +263,20 @@ function setupIPC(): void {
     else mainWindow?.maximize();
   });
   ipcMain.on("window-close", () => mainWindow?.hide()); // Скрыть в трей
-  ipcMain.on("open-external", (_event, url: string) => shell.openExternal(url));
+  ipcMain.on("open-external", (_event, url: string) => {
+      // Валидация: разрешаем только http/https схемы
+      try {
+        const parsed = new URL(url);
+        if (!["https:", "http:"].includes(parsed.protocol)) {
+          console.warn("[main] open-external заблокирован: небезопасная схема:", parsed.protocol);
+          return;
+        }
+      } catch {
+        console.warn("[main] open-external заблокирован: невалидный URL:", url);
+        return;
+      }
+      shell.openExternal(url);
+    });
   ipcMain.handle("get-hwid", async () => {
     try {
       const res = await fetch(
